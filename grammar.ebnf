@@ -1,0 +1,55 @@
+(* OWL - Overwatch Workshop Language - grammar, stage 1
+   Notation: ::= definition, | alternation, { } zero-or-more,
+             [ ] optional, " " terminal. *)
+
+program         ::= { statement } ;
+
+statement       ::= varDecl | assignStmt | ifStmt ;
+
+(* Variable declarations. "flex" declares a mutable variable (a flex player
+   adapts - the value can change). "🔒" declares an immutable (const)
+   variable (locked in, cannot change once set). *)
+varDecl         ::= declKeyword identifier ":" typeName "=" expression ";" ;
+declKeyword     ::= "flex" | "🔒" ;
+
+(* Types: 🔫 is the i32 equivalent, 🚀 is the i64 equivalent,
+   "ult" is the boolean type (an ultimate is either charged or not). *)
+typeName        ::= "🔫" | "🚀" | "ult" ;
+
+assignStmt      ::= identifier "=" expression ";" ;
+
+ifStmt          ::= "if" expression block [ "else" block ] ;
+block           ::= "{" statement { statement } "}" ;
+
+expression      ::= equality ;
+
+(* Comparison: 🆚 is the "==" equivalent, 🚫 is the "!=" equivalent.
+   Comparisons do not chain: at most one is allowed per expression. *)
+equality        ::= additive [ ( "🆚" | "🚫" ) additive ] ;
+
+(* Each arithmetic operator has an "unchecked" (wrapping) form and a
+   "checked" (overflow-checked) form spelled with a trailing "!". Whether a
+   checked operation traps on overflow is decided during semantic
+   analysis / code generation in the next project stage; here the parser
+   only records which form was used. *)
+additive        ::= multiplicative { ( "+" | "-" | "+!" | "-!" ) multiplicative } ;
+multiplicative  ::= unary { ( "*" | "/" | "*!" | "/!" ) unary } ;
+
+unary           ::= "-" unary | primary ;
+
+primary         ::= intLiteral
+                   | boolLiteral
+                   | identifier
+                   | "(" expression ")" ;
+
+(* 🔥 is the "true" equivalent, 💤 is the "false" equivalent. *)
+boolLiteral     ::= "🔥" | "💤" ;
+
+intLiteral      ::= digit { digit } ;
+identifier      ::= letter { letter | digit | "_" } ;
+letter          ::= "a".."z" | "A".."Z" | "_" ;
+digit           ::= "0".."9" ;
+
+(* Comments run from "//" to the end of the line and are discarded by the
+   lexer; they never reach the parser or the AST. *)
+comment         ::= "//" { any character except newline } newline ;

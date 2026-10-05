@@ -1,0 +1,27 @@
+Program
+  VarDecl name=hp mutable=True type=i32
+    IntLiteral value=30
+  VarDecl name=shielded mutable=True type=bool
+    BoolLiteral value=True
+  If
+    condition: BinaryExpr op=NEQ checked=False
+      left: Ident name=hp
+      right: IntLiteral value=0
+    then: Block
+      If
+        condition: BinaryExpr op=EQ checked=False
+          left: Ident name=shielded
+          right: BoolLiteral value=True
+        then: Block
+          Assign name=hp
+            BinaryExpr op=ADD checked=False
+              left: Ident name=hp
+              right: IntLiteral value=10
+        else: Block
+          Assign name=hp
+            BinaryExpr op=SUB checked=False
+              left: Ident name=hp
+              right: IntLiteral value=10
+    else: Block
+      Assign name=hp
+        IntLiteral value=0
