@@ -1,0 +1,3 @@
+Program
+  VarDecl name=team_size mutable=False type=i32
+    IntLiteral value=6

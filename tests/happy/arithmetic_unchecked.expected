@@ -1,0 +1,11 @@
+Program
+  VarDecl name=dmg mutable=True type=i32
+    BinaryExpr op=SUB checked=False
+      left: BinaryExpr op=ADD checked=False
+        left: IntLiteral value=1
+        right: BinaryExpr op=MUL checked=False
+          left: IntLiteral value=2
+          right: IntLiteral value=3
+      right: BinaryExpr op=DIV checked=False
+        left: IntLiteral value=4
+        right: IntLiteral value=2

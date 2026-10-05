@@ -1,0 +1,12 @@
+🔒 team_size: 🔫 = 6;
+flex ult_charge: 🚀 = 0;
+flex ult_ready: ult = 💤;
+ult_charge = ult_charge +! 25;
+if ult_charge 🆚 100 {
+  ult_ready = 🔥;
+} else {
+  ult_ready = 💤;
+}
+if ult_ready 🚫 💤 {
+  flex dmg: 🔫 = (team_size * 10) -! 5;
+}

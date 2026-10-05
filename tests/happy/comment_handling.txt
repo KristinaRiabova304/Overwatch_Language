@@ -1,0 +1,6 @@
+// this program tracks a hero's health
+flex hp: 🔫 = 100; // starting health
+// take some poke damage
+if hp 🚫 0 { // still alive
+  hp = hp - 10;
+}

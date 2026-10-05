@@ -1,0 +1,9 @@
+flex hp: 🔫 = 200;
+🔒 max_hp: 🔫 = 200;
+flex alive: ult = 🔥;
+hp = hp - 50;
+if hp 🚫 0 {
+  alive = 🔥;
+} else {
+  alive = 💤;
+}

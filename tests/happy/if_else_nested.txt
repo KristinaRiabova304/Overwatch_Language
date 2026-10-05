@@ -1,0 +1,11 @@
+flex hp: 🔫 = 30;
+flex shielded: ult = 🔥;
+if hp 🚫 0 {
+  if shielded 🆚 🔥 {
+    hp = hp + 10;
+  } else {
+    hp = hp - 10;
+  }
+} else {
+  hp = 0;
+}

@@ -1,0 +1,48 @@
+AI USAGE DISCLOSURE
+====================
+
+Tool used: Claude (Claude Code CLI), Anthropic, model Claude Sonnet 5.
+No other AI tool was used.
+
+What was asked:
+I gave Claude the assignment PDF ("Project Stage 1: language design, lexer
+and parser") and asked it to design and implement the stage, with the extra
+constraint that the custom language should be themed around the video game
+Overwatch. I did not design any part of the language or write any of the
+code myself; Claude produced the full design and implementation from the
+PDF and my instruction below.
+
+
+What Claude produced, entirely on its own, over the course of the session:
+- The language design: OWL (Overwatch Workshop Language) - which
+  Overwatch-themed keywords/emoji map to which required language feature
+  (types 🔫/🚀/ult, mutable/immutable declarations flex/🔒, comparisons
+  🆚/🚫, checked-arithmetic operators +!/-!/*!//!, boolean literals 🔥/💤).
+- grammar.ebnf.
+- lexer.py: the hand-written byte-level state machine.
+- ast_nodes.py: the AST node hierarchy and the --ast dump printer.
+- parser.py: the hand-written recursive-descent parser.
+- compiler.py: the CLI entry point.
+- All 41 test cases (20 happy-path, 21 error-path) under tests/, and
+  tests/run_tests.py.
+- README.md and this disclosure file.
+
+What was taken as-is vs. changed:
+Everything above was taken as Claude produced it; I have not personally
+rewritten or hand-edited any of the source code, grammar, or tests. When I
+asked Claude to check its own work a second time ("проверь все еще раз"),
+it re-read every file, re-ran tests/run_tests.py (41/41 passing at that
+point), and found one real inconsistency on its own: grammar.ebnf described
+unary minus as "[ "-" ] primary" (at most one leading minus), but
+parser.py's _parse_unary was actually recursive and accepted chained minus
+signs (e.g. "- -5"). Claude fixed the grammar rule to
+"unary ::= "-" unary | primary ;" to match the parser's real behavior, and
+added tests/happy/unary_chained.txt to cover it. That was Claude's fix, not
+mine; I am recording it here because it is the one place the first draft
+and the final draft differ.
+I have not independently reviewed the lexer/parser code line by line beyond
+what is described above, and I have not run the test suite myself outside
+of what Claude reported (tests/run_tests.py reporting 41/41 passing, which
+I'm told reflects an actual run of the compiler against every test file,
+not a hand-written claim).
+
