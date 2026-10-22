@@ -1,0 +1,4 @@
+ability one() -> 🔫 {
+  gg 1;
+  print(2);
+}

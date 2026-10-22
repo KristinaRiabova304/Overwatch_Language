@@ -1,0 +1,2 @@
+ability f() -> 🔫 { gg 1; }
+ability f() -> 🔫 { gg 2; }

@@ -1,0 +1,17 @@
+ability fact(n: 🔫) -> 🔫 {
+  if n 🆚 0 { gg 1; }
+  gg n *! fact(n -! 1);
+}
+ability fact64(n: 🚀) -> 🚀 {
+  if n 🆚 0 { gg 1; }
+  gg n *! fact64(n - 1);
+}
+ability fib(n: 🔫) -> 🔫 {
+  if n 🆚 0 { gg 0; }
+  if n 🆚 1 { gg 1; }
+  gg fib(n - 1) + fib(n - 2);
+}
+print(fact(10));
+print(fact64(20));
+print(fib(25));
+print(fact(fact(3)));

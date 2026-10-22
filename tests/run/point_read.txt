@@ -1,0 +1,13 @@
+hero Point {
+  🔒 x: 🔫;
+  🔒 y: 🔫;
+
+  ability d2() -> 🔫 {
+    flex r: 🔫 = x * x + y * y;
+    gg r;
+  }
+}
+🔒 p: Point = spawn Point(read(), read());
+print(p);
+print(p.d2());
+gg p.d2();

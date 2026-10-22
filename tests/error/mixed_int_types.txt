@@ -1,0 +1,3 @@
+flex a: 🔫 = 1;
+flex b: 🚀 = 2;
+flex c: 🚀 = a + b;

@@ -1,0 +1,4 @@
+ability reset(hp: 🔫) -> 🔫 {
+  hp = 0;
+  gg hp;
+}

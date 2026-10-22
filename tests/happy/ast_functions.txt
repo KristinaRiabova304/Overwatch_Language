@@ -1,0 +1,6 @@
+ability heal(hp: 🔫, amount: 🚀) -> ult {
+  gg hp 🆚 0;
+}
+flex ok: ult = heal(1, heal_amount(2));
+heal(3, 4);
+gg 0;
