@@ -88,8 +88,72 @@ class IfNode(StmtNode):
         return result
 
 
+class ParamNode(ASTNode):
+    def __init__(self, name, param_type, line, col):
+        super().__init__(line, col)
+        self.name = name
+        self.param_type = param_type
+
+    def label(self):
+        return f"Param name={self.name} type={self.param_type}"
+
+
+class FunctionDeclNode(StmtNode):
+    def __init__(self, name, params, result_type, body, line, col):
+        super().__init__(line, col)
+        self.name = name
+        self.params = params
+        self.result_type = result_type
+        self.body = body
+
+    def label(self):
+        return f"FunctionDecl name={self.name} result={self.result_type}"
+
+    def children(self):
+        return [("param", p) for p in self.params] + [("body", self.body)]
+
+
+class ReturnNode(StmtNode):
+    def __init__(self, value, line, col):
+        super().__init__(line, col)
+        self.value = value
+
+    def label(self):
+        return "Return"
+
+    def children(self):
+        return [("", self.value)]
+
+
+class ExprStmtNode(StmtNode):
+    """An expression used as a statement; its value is discarded."""
+
+    def __init__(self, expr, line, col):
+        super().__init__(line, col)
+        self.expr = expr
+
+    def label(self):
+        return "ExprStmt"
+
+    def children(self):
+        return [("", self.expr)]
+
+
 class ExprNode(ASTNode):
     pass
+
+
+class CallNode(ExprNode):
+    def __init__(self, name, args, line, col):
+        super().__init__(line, col)
+        self.name = name
+        self.args = args
+
+    def label(self):
+        return f"Call name={self.name} args={len(self.args)}"
+
+    def children(self):
+        return [("arg", a) for a in self.args]
 
 
 class IntLiteralNode(ExprNode):

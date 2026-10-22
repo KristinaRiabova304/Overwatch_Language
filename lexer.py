@@ -10,6 +10,8 @@ class TokenKind(Enum):
     KW_IF = auto()
     KW_ELSE = auto()
     KW_ULT = auto()       # "ult" - the boolean type keyword
+    KW_ABILITY = auto()   # "ability" - function declaration
+    KW_GG = auto()        # "gg" - leave a function (or the program) with a value
     TYPE_I32 = auto()      # 🔫 - i32
     TYPE_I64 = auto()      # 🚀 - i64
     DECL_CONST = auto()    # 🔒 - immutable variable declaration
@@ -23,6 +25,8 @@ class TokenKind(Enum):
     RBRACE = auto()
     LPAREN = auto()
     RPAREN = auto()
+    COMMA = auto()
+    ARROW = auto()          # ->
     ASSIGN = auto()
     PLUS = auto()
     MINUS = auto()
@@ -40,6 +44,8 @@ KEYWORDS = {
     "if": TokenKind.KW_IF,
     "else": TokenKind.KW_ELSE,
     "ult": TokenKind.KW_ULT,
+    "ability": TokenKind.KW_ABILITY,
+    "gg": TokenKind.KW_GG,
 }
 
 # Overwatch-flavored keywords/operators written as emoji. Each one is a fixed
@@ -63,6 +69,7 @@ SINGLE_BYTE_TOKENS = {
     0x7D: TokenKind.RBRACE,  # }
     0x28: TokenKind.LPAREN,  # (
     0x29: TokenKind.RPAREN,  # )
+    0x2C: TokenKind.COMMA,   # ,
     0x3D: TokenKind.ASSIGN,  # =
 }
 
@@ -178,6 +185,10 @@ class Lexer:
         if b in SINGLE_BYTE_TOKENS:
             self._advance()
             return Token(SINGLE_BYTE_TOKENS[b], chr(b), line, col)
+
+        if b == 0x2D and self._peek_byte(1) == 0x3E:  # "->"
+            self._advance(2)
+            return Token(TokenKind.ARROW, "->", line, col)
 
         if b in CHECKABLE_OPS:
             base_kind, checked_kind, text = CHECKABLE_OPS[b]

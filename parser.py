@@ -6,6 +6,7 @@ from lexer import TokenKind
 from ast_nodes import (
     ProgramNode, BlockNode, VarDeclNode, AssignNode, IfNode,
     IntLiteralNode, BoolLiteralNode, IdentNode, UnaryExprNode, BinaryExprNode,
+    ParamNode, FunctionDeclNode, ReturnNode, ExprStmtNode, CallNode,
 )
 
 TYPE_NAMES = {
@@ -66,23 +67,96 @@ class Parser:
             raise ParseError(tok.line, tok.col, f"expected {what} but found {_found_text(tok)}")
         return self._advance()
 
-    # program = { statement } ;
-    def parse_program(self):
-        statements = []
-        while self._peek().kind != TokenKind.EOF:
-            statements.append(self._parse_statement())
-        return ProgramNode(statements)
+    def _peek_kind(self, offset):
+        idx = min(self.pos + offset, len(self.tokens) - 1)
+        return self.tokens[idx].kind
 
-    # statement = varDecl | assignStmt | ifStmt ;
+    def _parse_type(self):
+        type_tok = self._peek()
+        if type_tok.kind not in TYPE_NAMES:
+            raise ParseError(type_tok.line, type_tok.col, f"expected a type but found {_found_text(type_tok)}")
+        self._advance()
+        return TYPE_NAMES[type_tok.kind]
+
+    # program = { topItem } ;
+    def parse_program(self):
+        items = []
+        while self._peek().kind != TokenKind.EOF:
+            items.append(self._parse_top_item())
+        return ProgramNode(items)
+
+    # topItem = functionDecl | statement ;
+    def _parse_top_item(self):
+        if self._peek().kind == TokenKind.KW_ABILITY:
+            return self._parse_function_decl()
+        return self._parse_statement()
+
+    # functionDecl = "ability" identifier "(" [ param { "," param } ] ")" "->" typeName block ;
+    def _parse_function_decl(self):
+        ability_tok = self._eat(TokenKind.KW_ABILITY, "'ability'")
+        name_tok = self._eat(TokenKind.IDENT, "function name")
+        self._eat(TokenKind.LPAREN, "'('")
+        params = []
+        if self._peek().kind != TokenKind.RPAREN:
+            params.append(self._parse_param())
+            while self._peek().kind == TokenKind.COMMA:
+                self._advance()
+                params.append(self._parse_param())
+        self._eat(TokenKind.RPAREN, "')'")
+        self._eat(TokenKind.ARROW, "'->'")
+        result_type = self._parse_type()
+        body = self._parse_block()
+        return FunctionDeclNode(name_tok.text, params, result_type, body, ability_tok.line, ability_tok.col)
+
+    # param = identifier ":" typeName ;
+    def _parse_param(self):
+        name_tok = self._eat(TokenKind.IDENT, "parameter name")
+        self._eat(TokenKind.COLON, "':'")
+        param_type = self._parse_type()
+        return ParamNode(name_tok.text, param_type, name_tok.line, name_tok.col)
+
+    # statement = varDecl | assignStmt | ifStmt | returnStmt | callStmt ;
     def _parse_statement(self):
         tok = self._peek()
         if tok.kind in (TokenKind.KW_FLEX, TokenKind.DECL_CONST):
             return self._parse_var_decl()
+        if tok.kind == TokenKind.IDENT and self._peek_kind(1) == TokenKind.LPAREN:
+            return self._parse_call_stmt()
         if tok.kind == TokenKind.IDENT:
             return self._parse_assign()
         if tok.kind == TokenKind.KW_IF:
             return self._parse_if()
+        if tok.kind == TokenKind.KW_GG:
+            return self._parse_return()
+        if tok.kind == TokenKind.KW_ABILITY:
+            raise ParseError(tok.line, tok.col, "functions can only be declared at the top level")
         raise ParseError(tok.line, tok.col, f"expected statement but found {_found_text(tok)}")
+
+    # returnStmt = "gg" expression ";" ;
+    def _parse_return(self):
+        gg_tok = self._eat(TokenKind.KW_GG, "'gg'")
+        value = self._parse_expression()
+        self._eat(TokenKind.SEMI, "';'")
+        return ReturnNode(value, gg_tok.line, gg_tok.col)
+
+    # callStmt = call ";" ;
+    def _parse_call_stmt(self):
+        call = self._parse_call()
+        self._eat(TokenKind.SEMI, "';'")
+        return ExprStmtNode(call, call.line, call.col)
+
+    # call = identifier "(" [ expression { "," expression } ] ")" ;
+    def _parse_call(self):
+        name_tok = self._eat(TokenKind.IDENT, "function name")
+        self._eat(TokenKind.LPAREN, "'('")
+        args = []
+        if self._peek().kind != TokenKind.RPAREN:
+            args.append(self._parse_expression())
+            while self._peek().kind == TokenKind.COMMA:
+                self._advance()
+                args.append(self._parse_expression())
+        self._eat(TokenKind.RPAREN, "')'")
+        return CallNode(name_tok.text, args, name_tok.line, name_tok.col)
 
     # varDecl = declKeyword identifier ":" typeName "=" expression ";" ;
     def _parse_var_decl(self):
@@ -90,11 +164,7 @@ class Parser:
         mutable = decl_tok.kind == TokenKind.KW_FLEX
         name_tok = self._eat(TokenKind.IDENT, "identifier")
         self._eat(TokenKind.COLON, "':'")
-        type_tok = self._peek()
-        if type_tok.kind not in TYPE_NAMES:
-            raise ParseError(type_tok.line, type_tok.col, f"expected a type but found {_found_text(type_tok)}")
-        self._advance()
-        var_type = TYPE_NAMES[type_tok.kind]
+        var_type = self._parse_type()
         self._eat(TokenKind.ASSIGN, "'='")
         value = self._parse_expression()
         self._eat(TokenKind.SEMI, "';'")
@@ -174,7 +244,7 @@ class Parser:
             return UnaryExprNode("NEG", operand, op_tok.line, op_tok.col)
         return self._parse_primary()
 
-    # primary = intLiteral | boolLiteral | identifier | "(" expression ")" ;
+    # primary = intLiteral | boolLiteral | call | identifier | "(" expression ")" ;
     def _parse_primary(self):
         tok = self._peek()
         if tok.kind == TokenKind.INT:
@@ -186,6 +256,8 @@ class Parser:
         if tok.kind == TokenKind.FALSE:
             self._advance()
             return BoolLiteralNode(False, tok.line, tok.col)
+        if tok.kind == TokenKind.IDENT and self._peek_kind(1) == TokenKind.LPAREN:
+            return self._parse_call()
         if tok.kind == TokenKind.IDENT:
             self._advance()
             return IdentNode(tok.text, tok.line, tok.col)
