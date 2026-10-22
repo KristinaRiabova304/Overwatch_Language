@@ -1,0 +1,4 @@
+// top-level gg ends the program; its value is the exit code
+ability answer(base: 🔫) -> 🔫 { gg base * 7; }
+print("bye");
+gg answer(6);

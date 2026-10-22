@@ -1,0 +1,14 @@
+hero Point {
+  flex x: 🔫;
+  flex y: 🔫;
+}
+hero Circle {
+  flex center: Point;
+  🔒 r: 🔫;
+}
+flex c: Circle = spawn Circle(spawn Point(1, 2), 10);
+c.center.x = 5;
+c.center.y = c.center.x + c.r;
+print(c.center.x);
+print(c.center.y);
+print(c);

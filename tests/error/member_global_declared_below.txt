@@ -1,0 +1,7 @@
+hero Hero {
+  flex power: 🔫;
+  ability boosted() -> 🔫 {
+    gg power + bonus;
+  }
+}
+flex bonus: 🔫 = 5;

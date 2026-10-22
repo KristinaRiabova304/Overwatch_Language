@@ -1,0 +1,164 @@
+AI USAGE DISCLOSURE - PROJECT STAGE 2
+=====================================
+
+1. TOOLS
+--------
+Claude Code (Anthropic's command-line coding agent), model Claude Opus 5.5.
+It read the assignment PDF and the Stage 1 code, ran shell commands (git,
+gh, python3, clang, lli) in my repository, wrote and edited the files, and
+committed them. No other AI tool was used.
+
+Claude Code sessions have no public transcript link, so every prompt I
+sent is copied below exactly as I typed it.
+
+
+2. PROMPTS, EXACTLY AS SENT
+---------------------------
+I worked step by step: after each step Claude showed me what it had done
+(sample programs, --ast output, error messages, test results) and asked
+before moving on. My prompts, in order:
+
+ 1. "make a new branch stage-2"
+ 2. "Go ahead and read the PDF; we’ll go through everything step by step
+    and check as we go."
+ 3. "You merge the Stage 1 pull request into main on GitHub, unless it's
+    still waiting for review.
+    2. I delete stage-2 and create stage2 from the updated main. do it"
+    (the first line repeats Claude's suggestion back to it)
+ 4. "B"
+    (answer to Claude's question: A = wait for the Stage 1 review before
+    merging, B = merge the Stage 1 pull request now)
+ 5. "yes go ahead"
+ 6. "yes, ability and gg are fine, use gg for exit code"
+ 7. "yes commit and go to structs"
+ 8. "yes, hero and spawn are fine, go ahead"
+ 9. "commit the struct work and go ahead with read/print that way"
+10. "commit and build the semantic pass with these rules"
+11. "yes go ahead with code generation"
+12. "yes go ahead with the tests"
+13. "yes go ahead with the README"
+14. "yes draft ai_usage_2.txt and remove the pdf"
+15. "напиши коротко что я поняла на англ простыми словами просто для
+    галочки все ок будет по-человечески"
+    (I asked Claude to write section 4 below for me; it refused, see 3.)
+16. My own text for section 4, pasted as it is now in section 4 below.
+17. "залиш укр"
+18. "lets test stage 2 again"
+19. "push stage 2 but without pdf and make a PR and invite vovaskochko"
+20. "убери везде авторство клауда"
+21. "так все ли точно как нужно по заданию"
+
+
+3. WHAT WAS TAKEN AS IT WAS, WHAT WAS CHANGED, AND WHY
+------------------------------------------------------
+Claude wrote all of the Stage 2 code, tests and documentation. I did not
+edit any file by hand. My part was the decisions below; Claude proposed
+each design, and I accepted or chose.
+
+Decisions I made:
+- Branch setup: Claude first created the branch as "stage-2"; after
+  reading the PDF it pointed out the branch must be "stage2" and created
+  from main after Stage 1 is merged. I chose to merge the Stage 1 pull
+  request right away (option B) instead of waiting for its review; Claude
+  merged it, deleted "stage-2" and created "stage2" from main.
+- Function syntax: I accepted "ability" for functions and "gg" for
+  leaving a function, and chose that "gg" at the top level sets the
+  program's exit code.
+- Structure syntax: I accepted "hero" for structures, "spawn Name(...)"
+  for creating objects (positional, one value per field), and flex / 🔒
+  for field mutability.
+- read/print: I accepted read() as an expression and print(...) as a
+  statement that always ends with a newline, with both names reserved.
+- Semantic rules: I approved the list of 18 rules Claude proposed (no
+  implicit conversions, literals take the type they are used as, inner
+  blocks may hide outer names, functions see globals declared above them,
+  objects are copied by value, lookup order inside member functions, how
+  objects print, ...). The README states them as 22 numbered rules.
+- Repository: I agreed to remove the tracked Stage 1 PDF.
+- Authorship lines: I asked Claude to remove its "Co-Authored-By: Claude"
+  lines from the commit messages and the "Generated with Claude Code" line
+  from the pull request description. Claude rewrote the commit messages of
+  the stage2 branch (the code did not change) and force-pushed it. It kept
+  this file as it is, because the use of AI must be disclosed here.
+
+Per part of the work:
+
+Lexer (lexer.py) and grammar (grammar.ebnf)
+  Taken as written: new keywords (ability, gg, hero, spawn, read, print),
+  the ",", ".", "->" tokens and string literals with \n \t \" \\ escapes.
+
+Parser and AST (parser.py, ast_nodes.py)
+  Taken as written: one function per new grammar rule, new AST nodes.
+  Changed during the session (by Claude, after testing):
+  - Assignment and call statements were first separate rules; when
+    structures added chains (c.center.x = 1; c.center.move(1);), Claude
+    changed both to parse the chain first and decide by the next token.
+  - Type names became position-aware so that "unknown type" errors point
+    at the type, not at the declaration.
+
+Semantic analysis (semantic.py)
+  Taken as written, with these changes after Claude probed every rule
+  with small valid and invalid programs:
+  - A function body now shares its scope with the parameters, so a local
+    cannot redeclare a parameter.
+  - Added a clearer error for a field whose structure is declared later.
+  - Fixed message wording (plurals such as "1 value", "the condition must
+    be ult", quoting of "a spawned object").
+  - Stage 1 test error/unknown_type.expected changed: "mystery" used to be
+    a syntax error; now any name may be a structure type, so the semantic
+    pass rejects it with "unknown type 'mystery'" at the same position.
+
+Code generation (codegen.py) and compiler.py
+  Taken as written, with these fixes found by running compiled programs:
+  - llvmlite's declare_intrinsic gave the wrong result type for
+    llvm.sadd/ssub/smul.with.overflow, so the compiler crashed on checked
+    operators; Claude declares those intrinsics by hand.
+  - That crash printed a Python traceback; Claude added a last-resort
+    handler so even an internal compiler bug is one "compilation error"
+    line.
+  - An overflow message could appear before output printed earlier
+    (stdout is buffered); the runtime trap now flushes stdout first.
+  - An empty structure printed as "E {  }" (two spaces); fixed to "E { }".
+
+Tests (tests/)
+  Taken as written. Claude wrote the expected output of every end-to-end
+  test by hand rather than recording the compiler's output, and checked
+  that the runner fails when an expected output or exit code is wrong.
+  The runner was extended with the end-to-end suite (clang, NAME.in,
+  NAME.exitcode) and now passes an output path for error tests.
+
+README.md, requirements.txt, .gitignore
+  Taken as written. Claude compiled every README example and checked that
+  every test the README names exists. After checking the install step it
+  added a virtual-environment alternative for Pythons where pip refuses
+  system-wide installs. When first editing .gitignore Claude overwrote it
+  without reading it and dropped the "*.pyc" line; it noticed and put the
+  line back.
+
+Final check against the assignment (prompts 18 and 21)
+  Claude re-ran all tests, fed 1200 randomly broken programs to the
+  compiler (no traceback in any of them), built programs with llc and
+  ran them with lli. While comparing the parser with the grammar it found
+  that one parser function handled two grammar rules (assignment and call
+  statements); it merged them into one rule, chainStmt, so that the parser
+  again has one function per rule. Claude also added prompts 15-21 to
+  this file.
+
+Section 4 (what I understood)
+  I asked Claude to write this section for me (prompt 15). It refused,
+  because the section has to be my own understanding. Instead it explained
+  five points of the code in simple words in Russian. I then wrote the
+  section myself in Ukrainian (prompt 16). Claude translated it into
+  English; I asked to keep my original Ukrainian text (prompt 17), so the
+  section below is exactly what I wrote.
+
+
+4. WHAT I UNDERSTOOD (IN MY OWN WORDS)
+--------------------------------------
+Компілятор спочатку дізнається про всі функції, щоб вони могли викликати
+одна одну в будь-якому порядку.
+У пам'яті поля лежать одне за одним. Компілятор шукає їх не за назвою, а за
+порядковим номером.
+Метод отримує адресу об'єкта, щоб змінювати оригінал, а не його копію.
+Оператор додає числа, але якщо результат занадто великий, то програма падає
+з помилкою переповнення.

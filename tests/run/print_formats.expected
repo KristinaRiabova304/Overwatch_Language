@@ -1,0 +1,4 @@
+tab:	here
+quote: "gg" \ 100%
+Player { id: 7, stats: Stats { elims: 10000000000, on_fire: true } }
+Empty { }

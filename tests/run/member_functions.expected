@@ -1,0 +1,6 @@
+450
+250
+true
+600
+Tank { hp: 600, max_hp: 600, shield_up: false }
+true

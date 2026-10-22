@@ -1,0 +1,13 @@
+hero Stats {
+  🔒 elims: 🚀;
+  🔒 on_fire: ult;
+}
+hero Player {
+  🔒 id: 🔫;
+  flex stats: Stats;
+}
+hero Empty { }
+print("tab:\there");
+print("quote: \"gg\" \\ 100%");
+print(spawn Player(7, spawn Stats(10000000000, 🔥)));
+print(spawn Empty());

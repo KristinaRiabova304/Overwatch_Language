@@ -1,0 +1,2 @@
+hero Circle { flex center: Point; }
+hero Point { flex x: 🔫; }

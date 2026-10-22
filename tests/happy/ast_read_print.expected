@@ -1,0 +1,9 @@
+Program
+  VarDecl name=n mutable=True type=i32
+    Read
+  Print
+    StringLiteral value='value:\t'
+  Print
+    BinaryExpr op=ADD checked=True
+      left: Ident name=n
+      right: Read

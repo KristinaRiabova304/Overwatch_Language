@@ -1,0 +1,20 @@
+Program
+  FunctionDecl name=heal result=bool
+    param: Param name=hp type=i32
+    param: Param name=amount type=i64
+    body: Block
+      Return
+        BinaryExpr op=EQ checked=False
+          left: Ident name=hp
+          right: IntLiteral value=0
+  VarDecl name=ok mutable=True type=bool
+    Call name=heal args=2
+      arg: IntLiteral value=1
+      arg: Call name=heal_amount args=1
+        arg: IntLiteral value=2
+  ExprStmt
+    Call name=heal args=2
+      arg: IntLiteral value=3
+      arg: IntLiteral value=4
+  Return
+    IntLiteral value=0

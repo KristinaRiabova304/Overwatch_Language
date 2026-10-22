@@ -6,6 +6,9 @@ from lexer import TokenKind
 from ast_nodes import (
     ProgramNode, BlockNode, VarDeclNode, AssignNode, IfNode,
     IntLiteralNode, BoolLiteralNode, IdentNode, UnaryExprNode, BinaryExprNode,
+    ParamNode, FunctionDeclNode, ReturnNode, ExprStmtNode, CallNode,
+    FieldDeclNode, StructDeclNode, FieldAssignNode, NewNode, FieldAccessNode, MethodCallNode,
+    PrintNode, ReadNode, StringLiteralNode,
 )
 
 TYPE_NAMES = {
@@ -66,23 +69,180 @@ class Parser:
             raise ParseError(tok.line, tok.col, f"expected {what} but found {_found_text(tok)}")
         return self._advance()
 
-    # program = { statement } ;
-    def parse_program(self):
-        statements = []
-        while self._peek().kind != TokenKind.EOF:
-            statements.append(self._parse_statement())
-        return ProgramNode(statements)
+    def _peek_kind(self, offset):
+        idx = min(self.pos + offset, len(self.tokens) - 1)
+        return self.tokens[idx].kind
 
-    # statement = varDecl | assignStmt | ifStmt ;
+    # typeName = "🔫" | "🚀" | "ult" | identifier ;
+    # Returns the type name and its (line, col), so that the semantic pass
+    # can point at an unknown structure name.
+    def _parse_type(self):
+        type_tok = self._peek()
+        if type_tok.kind == TokenKind.IDENT:
+            self._advance()
+            return type_tok.text, (type_tok.line, type_tok.col)
+        if type_tok.kind not in TYPE_NAMES:
+            raise ParseError(type_tok.line, type_tok.col, f"expected a type but found {_found_text(type_tok)}")
+        self._advance()
+        return TYPE_NAMES[type_tok.kind], (type_tok.line, type_tok.col)
+
+    # program = { topItem } ;
+    def parse_program(self):
+        items = []
+        while self._peek().kind != TokenKind.EOF:
+            items.append(self._parse_top_item())
+        return ProgramNode(items)
+
+    # topItem = functionDecl | structDecl | statement ;
+    def _parse_top_item(self):
+        if self._peek().kind == TokenKind.KW_ABILITY:
+            return self._parse_function_decl()
+        if self._peek().kind == TokenKind.KW_HERO:
+            return self._parse_struct_decl()
+        return self._parse_statement()
+
+    # structDecl = "hero" identifier "{" { fieldDecl | functionDecl } "}" ;
+    def _parse_struct_decl(self):
+        hero_tok = self._eat(TokenKind.KW_HERO, "'hero'")
+        name_tok = self._eat(TokenKind.IDENT, "structure name")
+        self._eat(TokenKind.LBRACE, "'{'")
+        fields, methods = [], []
+        while self._peek().kind not in (TokenKind.RBRACE, TokenKind.EOF):
+            tok = self._peek()
+            if tok.kind == TokenKind.KW_ABILITY:
+                methods.append(self._parse_function_decl())
+            elif tok.kind in (TokenKind.KW_FLEX, TokenKind.DECL_CONST):
+                fields.append(self._parse_field_decl())
+            else:
+                raise ParseError(tok.line, tok.col, f"expected a field or 'ability' but found {_found_text(tok)}")
+        self._eat(TokenKind.RBRACE, "'}'")
+        return StructDeclNode(name_tok.text, fields, methods, hero_tok.line, hero_tok.col)
+
+    # fieldDecl = declKeyword identifier ":" typeName ";" ;
+    def _parse_field_decl(self):
+        decl_tok = self._advance()
+        mutable = decl_tok.kind == TokenKind.KW_FLEX
+        name_tok = self._eat(TokenKind.IDENT, "field name")
+        self._eat(TokenKind.COLON, "':'")
+        field_type, type_pos = self._parse_type()
+        self._eat(TokenKind.SEMI, "';'")
+        return FieldDeclNode(mutable, name_tok.text, field_type, type_pos, name_tok.line, name_tok.col)
+
+    # functionDecl = "ability" identifier "(" [ param { "," param } ] ")" "->" typeName block ;
+    def _parse_function_decl(self):
+        ability_tok = self._eat(TokenKind.KW_ABILITY, "'ability'")
+        name_tok = self._eat(TokenKind.IDENT, "function name")
+        self._eat(TokenKind.LPAREN, "'('")
+        params = []
+        if self._peek().kind != TokenKind.RPAREN:
+            params.append(self._parse_param())
+            while self._peek().kind == TokenKind.COMMA:
+                self._advance()
+                params.append(self._parse_param())
+        self._eat(TokenKind.RPAREN, "')'")
+        self._eat(TokenKind.ARROW, "'->'")
+        result_type, type_pos = self._parse_type()
+        body = self._parse_block()
+        return FunctionDeclNode(name_tok.text, params, result_type, type_pos, body, ability_tok.line, ability_tok.col)
+
+    # param = identifier ":" typeName ;
+    def _parse_param(self):
+        name_tok = self._eat(TokenKind.IDENT, "parameter name")
+        self._eat(TokenKind.COLON, "':'")
+        param_type, type_pos = self._parse_type()
+        return ParamNode(name_tok.text, param_type, type_pos, name_tok.line, name_tok.col)
+
+    # statement = varDecl | chainStmt | ifStmt | returnStmt | printStmt ;
     def _parse_statement(self):
         tok = self._peek()
         if tok.kind in (TokenKind.KW_FLEX, TokenKind.DECL_CONST):
             return self._parse_var_decl()
         if tok.kind == TokenKind.IDENT:
-            return self._parse_assign()
+            return self._parse_chain_stmt()
         if tok.kind == TokenKind.KW_IF:
             return self._parse_if()
+        if tok.kind == TokenKind.KW_GG:
+            return self._parse_return()
+        if tok.kind == TokenKind.KW_PRINT:
+            return self._parse_print()
+        if tok.kind == TokenKind.KW_ABILITY:
+            raise ParseError(tok.line, tok.col, "functions can only be declared at the top level")
+        if tok.kind == TokenKind.KW_HERO:
+            raise ParseError(tok.line, tok.col, "structures can only be declared at the top level")
         raise ParseError(tok.line, tok.col, f"expected statement but found {_found_text(tok)}")
+
+    # chainStmt = postfix [ "=" expression ] ";" ;
+    # With "=" it is an assignment to a variable or a field chain; without,
+    # a call statement, so the chain must end in a call.
+    def _parse_chain_stmt(self):
+        target = self._parse_postfix()
+        tok = self._peek()
+        if tok.kind == TokenKind.ASSIGN:
+            if not isinstance(target, (IdentNode, FieldAccessNode)):
+                raise ParseError(tok.line, tok.col, "cannot assign to a call result")
+            self._advance()
+            value = self._parse_expression()
+            self._eat(TokenKind.SEMI, "';'")
+            if isinstance(target, IdentNode):
+                return AssignNode(target.name, value, target.line, target.col)
+            return FieldAssignNode(target, value, target.line, target.col)
+        if isinstance(target, (CallNode, MethodCallNode)):
+            self._eat(TokenKind.SEMI, "';'")
+            return ExprStmtNode(target, target.line, target.col)
+        raise ParseError(tok.line, tok.col, f"expected '=' but found {_found_text(tok)}")
+
+    # returnStmt = "gg" expression ";" ;
+    def _parse_return(self):
+        gg_tok = self._eat(TokenKind.KW_GG, "'gg'")
+        value = self._parse_expression()
+        self._eat(TokenKind.SEMI, "';'")
+        return ReturnNode(value, gg_tok.line, gg_tok.col)
+
+    # printStmt = "print" "(" ( stringLiteral | expression ) ")" ";" ;
+    def _parse_print(self):
+        print_tok = self._eat(TokenKind.KW_PRINT, "'print'")
+        self._eat(TokenKind.LPAREN, "'('")
+        tok = self._peek()
+        if tok.kind == TokenKind.STRING:
+            self._advance()
+            value = StringLiteralNode(tok.text, tok.line, tok.col)
+        else:
+            value = self._parse_expression()
+        self._eat(TokenKind.RPAREN, "')'")
+        self._eat(TokenKind.SEMI, "';'")
+        return PrintNode(value, print_tok.line, print_tok.col)
+
+    # readExpr = "read" "(" ")" ;
+    def _parse_read(self):
+        read_tok = self._eat(TokenKind.KW_READ, "'read'")
+        self._eat(TokenKind.LPAREN, "'('")
+        self._eat(TokenKind.RPAREN, "')'")
+        return ReadNode(read_tok.line, read_tok.col)
+
+    # call = identifier args ;
+    def _parse_call(self):
+        name_tok = self._eat(TokenKind.IDENT, "function name")
+        args = self._parse_args()
+        return CallNode(name_tok.text, args, name_tok.line, name_tok.col)
+
+    # args = "(" [ expression { "," expression } ] ")" ;
+    def _parse_args(self):
+        self._eat(TokenKind.LPAREN, "'('")
+        args = []
+        if self._peek().kind != TokenKind.RPAREN:
+            args.append(self._parse_expression())
+            while self._peek().kind == TokenKind.COMMA:
+                self._advance()
+                args.append(self._parse_expression())
+        self._eat(TokenKind.RPAREN, "')'")
+        return args
+
+    # newExpr = "spawn" identifier args ;
+    def _parse_new(self):
+        spawn_tok = self._eat(TokenKind.KW_SPAWN, "'spawn'")
+        name_tok = self._eat(TokenKind.IDENT, "structure name")
+        args = self._parse_args()
+        return NewNode(name_tok.text, args, spawn_tok.line, spawn_tok.col)
 
     # varDecl = declKeyword identifier ":" typeName "=" expression ";" ;
     def _parse_var_decl(self):
@@ -90,23 +250,11 @@ class Parser:
         mutable = decl_tok.kind == TokenKind.KW_FLEX
         name_tok = self._eat(TokenKind.IDENT, "identifier")
         self._eat(TokenKind.COLON, "':'")
-        type_tok = self._peek()
-        if type_tok.kind not in TYPE_NAMES:
-            raise ParseError(type_tok.line, type_tok.col, f"expected a type but found {_found_text(type_tok)}")
-        self._advance()
-        var_type = TYPE_NAMES[type_tok.kind]
+        var_type, type_pos = self._parse_type()
         self._eat(TokenKind.ASSIGN, "'='")
         value = self._parse_expression()
         self._eat(TokenKind.SEMI, "';'")
-        return VarDeclNode(mutable, name_tok.text, var_type, value, decl_tok.line, decl_tok.col)
-
-    # assignStmt = identifier "=" expression ";" ;
-    def _parse_assign(self):
-        name_tok = self._eat(TokenKind.IDENT, "identifier")
-        self._eat(TokenKind.ASSIGN, "'='")
-        value = self._parse_expression()
-        self._eat(TokenKind.SEMI, "';'")
-        return AssignNode(name_tok.text, value, name_tok.line, name_tok.col)
+        return VarDeclNode(mutable, name_tok.text, var_type, type_pos, value, decl_tok.line, decl_tok.col)
 
     # ifStmt = "if" expression block [ "else" block ] ;
     def _parse_if(self):
@@ -166,15 +314,28 @@ class Parser:
             left = BinaryExprNode(op, checked, left, right, op_tok.line, op_tok.col)
         return left
 
-    # unary = "-" unary | primary ;
+    # unary = "-" unary | postfix ;
     def _parse_unary(self):
         if self._peek().kind == TokenKind.MINUS:
             op_tok = self._advance()
             operand = self._parse_unary()
             return UnaryExprNode("NEG", operand, op_tok.line, op_tok.col)
-        return self._parse_primary()
+        return self._parse_postfix()
 
-    # primary = intLiteral | boolLiteral | identifier | "(" expression ")" ;
+    # postfix = primary { "." identifier [ args ] } ;
+    def _parse_postfix(self):
+        expr = self._parse_primary()
+        while self._peek().kind == TokenKind.DOT:
+            self._advance()
+            name_tok = self._eat(TokenKind.IDENT, "field or member function name")
+            if self._peek().kind == TokenKind.LPAREN:
+                args = self._parse_args()
+                expr = MethodCallNode(expr, name_tok.text, args, name_tok.line, name_tok.col)
+            else:
+                expr = FieldAccessNode(expr, name_tok.text, name_tok.line, name_tok.col)
+        return expr
+
+    # primary = intLiteral | boolLiteral | readExpr | newExpr | call | identifier | "(" expression ")" ;
     def _parse_primary(self):
         tok = self._peek()
         if tok.kind == TokenKind.INT:
@@ -186,6 +347,12 @@ class Parser:
         if tok.kind == TokenKind.FALSE:
             self._advance()
             return BoolLiteralNode(False, tok.line, tok.col)
+        if tok.kind == TokenKind.KW_READ:
+            return self._parse_read()
+        if tok.kind == TokenKind.KW_SPAWN:
+            return self._parse_new()
+        if tok.kind == TokenKind.IDENT and self._peek_kind(1) == TokenKind.LPAREN:
+            return self._parse_call()
         if tok.kind == TokenKind.IDENT:
             self._advance()
             return IdentNode(tok.text, tok.line, tok.col)
@@ -194,4 +361,6 @@ class Parser:
             expr = self._parse_expression()
             self._eat(TokenKind.RPAREN, "')'")
             return expr
+        if tok.kind == TokenKind.STRING:
+            raise ParseError(tok.line, tok.col, "a string literal can only be printed")
         raise ParseError(tok.line, tok.col, f"expected an expression but found {_found_text(tok)}")
