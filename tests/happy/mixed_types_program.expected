@@ -1,0 +1,32 @@
+Program
+  VarDecl name=team_size mutable=False type=i32
+    IntLiteral value=6
+  VarDecl name=ult_charge mutable=True type=i64
+    IntLiteral value=0
+  VarDecl name=ult_ready mutable=True type=bool
+    BoolLiteral value=False
+  Assign name=ult_charge
+    BinaryExpr op=ADD checked=True
+      left: Ident name=ult_charge
+      right: IntLiteral value=25
+  If
+    condition: BinaryExpr op=EQ checked=False
+      left: Ident name=ult_charge
+      right: IntLiteral value=100
+    then: Block
+      Assign name=ult_ready
+        BoolLiteral value=True
+    else: Block
+      Assign name=ult_ready
+        BoolLiteral value=False
+  If
+    condition: BinaryExpr op=NEQ checked=False
+      left: Ident name=ult_ready
+      right: BoolLiteral value=False
+    then: Block
+      VarDecl name=dmg mutable=True type=i32
+        BinaryExpr op=SUB checked=True
+          left: BinaryExpr op=MUL checked=False
+            left: Ident name=team_size
+            right: IntLiteral value=10
+          right: IntLiteral value=5

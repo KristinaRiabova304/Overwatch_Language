@@ -1,0 +1,10 @@
+Program
+  VarDecl name=hp mutable=True type=i32
+    IntLiteral value=100
+  If
+    condition: BinaryExpr op=EQ checked=False
+      left: Ident name=hp
+      right: IntLiteral value=100
+    then: Block
+      Assign name=hp
+        IntLiteral value=0

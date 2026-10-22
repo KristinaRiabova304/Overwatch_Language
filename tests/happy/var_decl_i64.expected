@@ -1,0 +1,3 @@
+Program
+  VarDecl name=reserve mutable=True type=i64
+    IntLiteral value=9999999999

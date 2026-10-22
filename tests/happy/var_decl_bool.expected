@@ -1,0 +1,3 @@
+Program
+  VarDecl name=online mutable=True type=bool
+    BoolLiteral value=True

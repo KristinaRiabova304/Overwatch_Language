@@ -1,0 +1,5 @@
+Program
+  VarDecl name=delta mutable=True type=i32
+    UnaryExpr op=NEG
+      UnaryExpr op=NEG
+        IntLiteral value=5

@@ -1,0 +1,3 @@
+Program
+  VarDecl name=game_over mutable=False type=bool
+    BoolLiteral value=False

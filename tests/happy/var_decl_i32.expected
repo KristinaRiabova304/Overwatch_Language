@@ -1,0 +1,3 @@
+Program
+  VarDecl name=ammo mutable=True type=i32
+    IntLiteral value=30

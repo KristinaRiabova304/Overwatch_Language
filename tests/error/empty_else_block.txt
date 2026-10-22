@@ -1,0 +1,5 @@
+flex hp: 🔫 = 100;
+if hp 🚫 0 {
+  hp = 90;
+} else {
+}

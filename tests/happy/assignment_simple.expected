@@ -1,0 +1,5 @@
+Program
+  VarDecl name=hp mutable=True type=i32
+    IntLiteral value=100
+  Assign name=hp
+    IntLiteral value=80

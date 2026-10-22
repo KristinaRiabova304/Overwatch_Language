@@ -1,0 +1,13 @@
+Program
+  VarDecl name=ult_ready mutable=True type=bool
+    BoolLiteral value=True
+  VarDecl name=dmg mutable=True type=i32
+    IntLiteral value=0
+  If
+    condition: Ident name=ult_ready
+    then: Block
+      Assign name=dmg
+        IntLiteral value=900
+    else: Block
+      Assign name=dmg
+        IntLiteral value=0

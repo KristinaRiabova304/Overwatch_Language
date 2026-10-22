@@ -1,0 +1,21 @@
+Program
+  VarDecl name=hp mutable=True type=i32
+    IntLiteral value=200
+  VarDecl name=max_hp mutable=False type=i32
+    IntLiteral value=200
+  VarDecl name=alive mutable=True type=bool
+    BoolLiteral value=True
+  Assign name=hp
+    BinaryExpr op=SUB checked=False
+      left: Ident name=hp
+      right: IntLiteral value=50
+  If
+    condition: BinaryExpr op=NEQ checked=False
+      left: Ident name=hp
+      right: IntLiteral value=0
+    then: Block
+      Assign name=alive
+        BoolLiteral value=True
+    else: Block
+      Assign name=alive
+        BoolLiteral value=False

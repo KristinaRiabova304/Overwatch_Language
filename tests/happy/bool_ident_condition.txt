@@ -1,0 +1,7 @@
+flex ult_ready: ult = 🔥;
+flex dmg: 🔫 = 0;
+if ult_ready {
+  dmg = 900;
+} else {
+  dmg = 0;
+}
