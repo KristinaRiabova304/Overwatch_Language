@@ -124,11 +124,10 @@ README.md, requirements.txt, .gitignore
 
 4. WHAT I UNDERSTOOD (IN MY OWN WORDS)
 --------------------------------------
-The compiler first learns about all the functions, so that they can call
-each other in any order.
-In memory, the fields of an object lie one after another. The compiler
-finds a field not by its name but by its position number.
-A member function gets the address of the object, so that it changes the
-original and not a copy of it.
-The checked operator adds the numbers, but if the result is too big, the
-program stops with an overflow error.
+Компілятор спочатку дізнається про всі функції, щоб вони могли викликати
+одна одну в будь-якому порядку.
+У пам'яті поля лежать одне за одним. Компілятор шукає їх не за назвою, а за
+порядковим номером.
+Метод отримує адресу об'єкта, щоб змінювати оригінал, а не його копію.
+Оператор додає числа, але якщо результат занадто великий, то програма падає
+з помилкою переповнення.
