@@ -12,6 +12,8 @@ class TokenKind(Enum):
     KW_ULT = auto()       # "ult" - the boolean type keyword
     KW_ABILITY = auto()   # "ability" - function declaration
     KW_GG = auto()        # "gg" - leave a function (or the program) with a value
+    KW_HERO = auto()      # "hero" - structure declaration
+    KW_SPAWN = auto()     # "spawn" - object creation
     TYPE_I32 = auto()      # 🔫 - i32
     TYPE_I64 = auto()      # 🚀 - i64
     DECL_CONST = auto()    # 🔒 - immutable variable declaration
@@ -26,6 +28,7 @@ class TokenKind(Enum):
     LPAREN = auto()
     RPAREN = auto()
     COMMA = auto()
+    DOT = auto()
     ARROW = auto()          # ->
     ASSIGN = auto()
     PLUS = auto()
@@ -46,6 +49,8 @@ KEYWORDS = {
     "ult": TokenKind.KW_ULT,
     "ability": TokenKind.KW_ABILITY,
     "gg": TokenKind.KW_GG,
+    "hero": TokenKind.KW_HERO,
+    "spawn": TokenKind.KW_SPAWN,
 }
 
 # Overwatch-flavored keywords/operators written as emoji. Each one is a fixed
@@ -70,6 +75,7 @@ SINGLE_BYTE_TOKENS = {
     0x28: TokenKind.LPAREN,  # (
     0x29: TokenKind.RPAREN,  # )
     0x2C: TokenKind.COMMA,   # ,
+    0x2E: TokenKind.DOT,     # .
     0x3D: TokenKind.ASSIGN,  # =
 }
 

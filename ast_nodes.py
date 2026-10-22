@@ -113,6 +113,46 @@ class FunctionDeclNode(StmtNode):
         return [("param", p) for p in self.params] + [("body", self.body)]
 
 
+class FieldDeclNode(ASTNode):
+    def __init__(self, mutable, name, field_type, line, col):
+        super().__init__(line, col)
+        self.mutable = mutable
+        self.name = name
+        self.field_type = field_type
+
+    def label(self):
+        return f"Field name={self.name} mutable={self.mutable} type={self.field_type}"
+
+
+class StructDeclNode(StmtNode):
+    def __init__(self, name, fields, methods, line, col):
+        super().__init__(line, col)
+        self.name = name
+        self.fields = fields
+        self.methods = methods
+
+    def label(self):
+        return f"StructDecl name={self.name}"
+
+    def children(self):
+        return [("field", f) for f in self.fields] + [("method", m) for m in self.methods]
+
+
+class FieldAssignNode(StmtNode):
+    """Assignment through a chain: target is a FieldAccessNode."""
+
+    def __init__(self, target, value, line, col):
+        super().__init__(line, col)
+        self.target = target
+        self.value = value
+
+    def label(self):
+        return "FieldAssign"
+
+    def children(self):
+        return [("target", self.target), ("value", self.value)]
+
+
 class ReturnNode(StmtNode):
     def __init__(self, value, line, col):
         super().__init__(line, col)
@@ -154,6 +194,50 @@ class CallNode(ExprNode):
 
     def children(self):
         return [("arg", a) for a in self.args]
+
+
+class NewNode(ExprNode):
+    """spawn Name(args): creates an object with one value per field."""
+
+    def __init__(self, struct_name, args, line, col):
+        super().__init__(line, col)
+        self.struct_name = struct_name
+        self.args = args
+
+    def label(self):
+        return f"New type={self.struct_name} args={len(self.args)}"
+
+    def children(self):
+        return [("arg", a) for a in self.args]
+
+
+class FieldAccessNode(ExprNode):
+    def __init__(self, obj, field, line, col):
+        super().__init__(line, col)
+        self.obj = obj
+        self.field = field
+
+    def label(self):
+        return f"FieldAccess field={self.field}"
+
+    def children(self):
+        return [("object", self.obj)]
+
+
+class MethodCallNode(ExprNode):
+    """A chain that ends in a member call: obj.name(args)."""
+
+    def __init__(self, obj, name, args, line, col):
+        super().__init__(line, col)
+        self.obj = obj
+        self.name = name
+        self.args = args
+
+    def label(self):
+        return f"MethodCall name={self.name} args={len(self.args)}"
+
+    def children(self):
+        return [("object", self.obj)] + [("arg", a) for a in self.args]
 
 
 class IntLiteralNode(ExprNode):

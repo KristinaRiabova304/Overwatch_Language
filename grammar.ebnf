@@ -5,7 +5,7 @@
 (* The top-level statements form the program's entry point; functions are
    declared only at the top level. *)
 program         ::= { topItem } ;
-topItem         ::= functionDecl | statement ;
+topItem         ::= functionDecl | structDecl | statement ;
 
 (* Functions: "ability" declares a function (a hero's ability takes inputs
    and produces a result). Parameters are typed and immutable. *)
@@ -13,15 +13,24 @@ functionDecl    ::= "ability" identifier "(" [ param { "," param } ] ")"
                     "->" typeName block ;
 param           ::= identifier ":" typeName ;
 
+(* Structures: "hero" declares a named type (a hero is a bundle of stats and
+   abilities). Fields use the same flex / 🔒 keywords as variables: "flex"
+   fields are mutable, "🔒" fields are constant. Member functions are
+   "ability" declarations inside the structure. *)
+structDecl      ::= "hero" identifier "{" { fieldDecl | functionDecl } "}" ;
+fieldDecl       ::= declKeyword identifier ":" typeName ";" ;
+
 statement       ::= varDecl | assignStmt | ifStmt | returnStmt | callStmt ;
 
 (* "gg" ("good game") leaves the current function with a value; at the top
    level it ends the program and the value is its exit code. *)
 returnStmt      ::= "gg" expression ";" ;
 
-(* A call used as a statement; its result is discarded. *)
-callStmt        ::= call ";" ;
-call            ::= identifier "(" [ expression { "," expression } ] ")" ;
+(* A call used as a statement; its result is discarded. The chain must
+   end in a call: f(1); or p.move(2); *)
+callStmt        ::= postfix ";" ;
+call            ::= identifier args ;
+args            ::= "(" [ expression { "," expression } ] ")" ;
 
 (* Variable declarations. "flex" declares a mutable variable (a flex player
    adapts - the value can change). "🔒" declares an immutable (const)
@@ -30,10 +39,13 @@ varDecl         ::= declKeyword identifier ":" typeName "=" expression ";" ;
 declKeyword     ::= "flex" | "🔒" ;
 
 (* Types: 🔫 is the i32 equivalent, 🚀 is the i64 equivalent,
-   "ult" is the boolean type (an ultimate is either charged or not). *)
-typeName        ::= "🔫" | "🚀" | "ult" ;
+   "ult" is the boolean type (an ultimate is either charged or not).
+   An identifier names a structure type declared with "hero". *)
+typeName        ::= "🔫" | "🚀" | "ult" | identifier ;
 
-assignStmt      ::= identifier "=" expression ";" ;
+(* The target is a variable or a field chain such as c.center.x; it may
+   not end in a call. *)
+assignStmt      ::= postfix "=" expression ";" ;
 
 ifStmt          ::= "if" expression block [ "else" block ] ;
 block           ::= "{" statement { statement } "}" ;
@@ -52,13 +64,21 @@ equality        ::= additive [ ( "🆚" | "🚫" ) additive ] ;
 additive        ::= multiplicative { ( "+" | "-" | "+!" | "-!" ) multiplicative } ;
 multiplicative  ::= unary { ( "*" | "/" | "*!" | "/!" ) unary } ;
 
-unary           ::= "-" unary | primary ;
+unary           ::= "-" unary | postfix ;
+
+(* Field access and member calls chain left to right: c.center.x,
+   c.center.d2(). A "." followed by a name and "(" is a member call. *)
+postfix         ::= primary { "." identifier [ args ] } ;
 
 primary         ::= intLiteral
                    | boolLiteral
+                   | newExpr
                    | call
                    | identifier
                    | "(" expression ")" ;
+
+(* "spawn" creates an object: one value per field, in declaration order. *)
+newExpr         ::= "spawn" identifier args ;
 
 (* 🔥 is the "true" equivalent, 💤 is the "false" equivalent. *)
 boolLiteral     ::= "🔥" | "💤" ;
@@ -68,11 +88,12 @@ identifier      ::= letter { letter | digit | "_" } ;
 letter          ::= "a".."z" | "A".."Z" | "_" ;
 digit           ::= "0".."9" ;
 
-(* Lexical rules for the stage 2 symbols. "ability" and "gg" are keywords
-   and cannot be used as identifiers. "->" is a single token: a "-"
-   immediately followed by ">" is always the arrow. *)
+(* Lexical rules for the stage 2 symbols. "ability", "gg", "hero" and
+   "spawn" are keywords and cannot be used as identifiers. "->" is a single
+   token: a "-" immediately followed by ">" is always the arrow. *)
 arrow           ::= "->" ;
 comma           ::= "," ;
+dot             ::= "." ;
 
 (* Comments run from "//" to the end of the line and are discarded by the
    lexer; they never reach the parser or the AST. *)
