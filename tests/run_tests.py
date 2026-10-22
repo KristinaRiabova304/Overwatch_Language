@@ -10,6 +10,7 @@ code and the stderr message stored in the matching *.expected file.
 
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,9 +22,11 @@ ERROR_DIR = Path(__file__).resolve().parent / "error"
 def run_compiler(src_path, with_ast):
     cmd = [sys.executable, str(COMPILER)]
     if with_ast:
-        cmd.append("--ast")
-    cmd.append(str(src_path))
-    return subprocess.run(cmd, capture_output=True, text=True)
+        cmd += ["--ast", str(src_path)]
+        return subprocess.run(cmd, capture_output=True, text=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        cmd += [str(src_path), str(Path(tmp) / "out.ll")]
+        return subprocess.run(cmd, capture_output=True, text=True)
 
 
 def check_happy(src_path):

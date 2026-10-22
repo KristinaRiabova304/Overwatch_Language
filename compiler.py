@@ -11,6 +11,7 @@ import sys
 from lexer import Lexer, LexError
 from parser import Parser, ParseError
 from semantic import analyze, SemanticError
+from codegen import generate
 from ast_nodes import dump_ast
 
 
@@ -25,6 +26,8 @@ def main():
     argp.add_argument("output", nargs="?", help="path of the LLVM IR file to write")
     argp.add_argument("--ast", action="store_true", help="print the parsed AST")
     args = argp.parse_args()
+    if not args.ast and args.output is None:
+        argp.error("an output file is required unless --ast is given")
 
     try:
         with open(args.input, "rb") as f:
@@ -40,10 +43,20 @@ def main():
                 print(line)
             return
         analyze(program)
+        module = generate(program)
     except (LexError, ParseError, SemanticError) as e:
         fail(f"line {e.line}:{e.col}: {e.message}")
     except RecursionError:
         fail("line 1:1: program is nested too deeply")
+    except Exception as e:  # a bug in the compiler itself: still one line, never a traceback
+        fail(f"line 1:1: internal compiler error: {type(e).__name__}: {e}")
+
+    # The output file is written only after everything succeeded.
+    try:
+        with open(args.output, "w") as f:
+            f.write(str(module))
+    except OSError as e:
+        fail(f"cannot write {args.output}: {e.strerror}")
 
 
 if __name__ == "__main__":
