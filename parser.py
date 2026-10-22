@@ -8,6 +8,7 @@ from ast_nodes import (
     IntLiteralNode, BoolLiteralNode, IdentNode, UnaryExprNode, BinaryExprNode,
     ParamNode, FunctionDeclNode, ReturnNode, ExprStmtNode, CallNode,
     FieldDeclNode, StructDeclNode, FieldAssignNode, NewNode, FieldAccessNode, MethodCallNode,
+    PrintNode, ReadNode, StringLiteralNode,
 )
 
 TYPE_NAMES = {
@@ -149,7 +150,7 @@ class Parser:
         param_type = self._parse_type()
         return ParamNode(name_tok.text, param_type, name_tok.line, name_tok.col)
 
-    # statement = varDecl | assignStmt | ifStmt | returnStmt | callStmt ;
+    # statement = varDecl | assignStmt | ifStmt | returnStmt | printStmt | callStmt ;
     def _parse_statement(self):
         tok = self._peek()
         if tok.kind in (TokenKind.KW_FLEX, TokenKind.DECL_CONST):
@@ -160,6 +161,8 @@ class Parser:
             return self._parse_if()
         if tok.kind == TokenKind.KW_GG:
             return self._parse_return()
+        if tok.kind == TokenKind.KW_PRINT:
+            return self._parse_print()
         if tok.kind == TokenKind.KW_ABILITY:
             raise ParseError(tok.line, tok.col, "functions can only be declared at the top level")
         if tok.kind == TokenKind.KW_HERO:
@@ -194,6 +197,27 @@ class Parser:
         value = self._parse_expression()
         self._eat(TokenKind.SEMI, "';'")
         return ReturnNode(value, gg_tok.line, gg_tok.col)
+
+    # printStmt = "print" "(" ( stringLiteral | expression ) ")" ";" ;
+    def _parse_print(self):
+        print_tok = self._eat(TokenKind.KW_PRINT, "'print'")
+        self._eat(TokenKind.LPAREN, "'('")
+        tok = self._peek()
+        if tok.kind == TokenKind.STRING:
+            self._advance()
+            value = StringLiteralNode(tok.text, tok.line, tok.col)
+        else:
+            value = self._parse_expression()
+        self._eat(TokenKind.RPAREN, "')'")
+        self._eat(TokenKind.SEMI, "';'")
+        return PrintNode(value, print_tok.line, print_tok.col)
+
+    # readExpr = "read" "(" ")" ;
+    def _parse_read(self):
+        read_tok = self._eat(TokenKind.KW_READ, "'read'")
+        self._eat(TokenKind.LPAREN, "'('")
+        self._eat(TokenKind.RPAREN, "')'")
+        return ReadNode(read_tok.line, read_tok.col)
 
     # call = identifier "(" [ expression { "," expression } ] ")" ;
     def _parse_call(self):
@@ -311,7 +335,7 @@ class Parser:
                 expr = FieldAccessNode(expr, name_tok.text, name_tok.line, name_tok.col)
         return expr
 
-    # primary = intLiteral | boolLiteral | newExpr | call | identifier | "(" expression ")" ;
+    # primary = intLiteral | boolLiteral | readExpr | newExpr | call | identifier | "(" expression ")" ;
     def _parse_primary(self):
         tok = self._peek()
         if tok.kind == TokenKind.INT:
@@ -323,6 +347,8 @@ class Parser:
         if tok.kind == TokenKind.FALSE:
             self._advance()
             return BoolLiteralNode(False, tok.line, tok.col)
+        if tok.kind == TokenKind.KW_READ:
+            return self._parse_read()
         if tok.kind == TokenKind.KW_SPAWN:
             return self._parse_new()
         if tok.kind == TokenKind.IDENT and self._peek_kind(1) == TokenKind.LPAREN:
@@ -335,4 +361,6 @@ class Parser:
             expr = self._parse_expression()
             self._eat(TokenKind.RPAREN, "')'")
             return expr
+        if tok.kind == TokenKind.STRING:
+            raise ParseError(tok.line, tok.col, "a string literal can only be printed")
         raise ParseError(tok.line, tok.col, f"expected an expression but found {_found_text(tok)}")

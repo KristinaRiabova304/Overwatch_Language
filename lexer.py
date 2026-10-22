@@ -5,6 +5,7 @@ from enum import Enum, auto
 
 class TokenKind(Enum):
     INT = auto()
+    STRING = auto()        # "..." - only allowed as the argument of print
     IDENT = auto()
     KW_FLEX = auto()
     KW_IF = auto()
@@ -14,6 +15,8 @@ class TokenKind(Enum):
     KW_GG = auto()        # "gg" - leave a function (or the program) with a value
     KW_HERO = auto()      # "hero" - structure declaration
     KW_SPAWN = auto()     # "spawn" - object creation
+    KW_READ = auto()      # "read" - read one integer from standard input
+    KW_PRINT = auto()     # "print" - print a value and a newline
     TYPE_I32 = auto()      # 🔫 - i32
     TYPE_I64 = auto()      # 🚀 - i64
     DECL_CONST = auto()    # 🔒 - immutable variable declaration
@@ -51,6 +54,8 @@ KEYWORDS = {
     "gg": TokenKind.KW_GG,
     "hero": TokenKind.KW_HERO,
     "spawn": TokenKind.KW_SPAWN,
+    "read": TokenKind.KW_READ,
+    "print": TokenKind.KW_PRINT,
 }
 
 # Overwatch-flavored keywords/operators written as emoji. Each one is a fixed
@@ -188,6 +193,9 @@ class Lexer:
         if b >= 0xF0:
             return self._lex_emoji(line, col)
 
+        if b == 0x22:  # '"'
+            return self._lex_string(line, col)
+
         if b in SINGLE_BYTE_TOKENS:
             self._advance()
             return Token(SINGLE_BYTE_TOKENS[b], chr(b), line, col)
@@ -220,6 +228,35 @@ class Lexer:
         text = self.src[start:self.pos].decode("ascii")
         kind = KEYWORDS.get(text, TokenKind.IDENT)
         return Token(kind, text, line, col)
+
+    # Escapes inside a string literal: \n, \t, \" and \\.
+    STRING_ESCAPES = {0x6E: 0x0A, 0x74: 0x09, 0x22: 0x22, 0x5C: 0x5C}
+
+    def _lex_string(self, line, col):
+        self._advance()  # opening quote
+        content = bytearray()
+        while True:
+            b = self._peek_byte()
+            if b is None or b == 0x0A:
+                raise LexError(line, col, "unterminated string literal")
+            if b == 0x22:
+                self._advance()
+                break
+            if b == 0x5C:  # backslash
+                esc_line, esc_col = self.line, self.col
+                nxt = self._peek_byte(1)
+                if nxt not in self.STRING_ESCAPES:
+                    raise LexError(esc_line, esc_col, "unknown escape sequence in string literal")
+                content.append(self.STRING_ESCAPES[nxt])
+                self._advance(2)
+                continue
+            content.append(b)
+            self._advance()
+        try:
+            text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            raise LexError(line, col, "string literal is not valid UTF-8")
+        return Token(TokenKind.STRING, text, line, col)
 
     def _lex_emoji(self, line, col):
         chunk = self.src[self.pos:self.pos + 4]

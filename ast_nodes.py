@@ -165,6 +165,20 @@ class ReturnNode(StmtNode):
         return [("", self.value)]
 
 
+class PrintNode(StmtNode):
+    """print(value); value is an expression or a StringLiteralNode."""
+
+    def __init__(self, value, line, col):
+        super().__init__(line, col)
+        self.value = value
+
+    def label(self):
+        return "Print"
+
+    def children(self):
+        return [("", self.value)]
+
+
 class ExprStmtNode(StmtNode):
     """An expression used as a statement; its value is discarded."""
 
@@ -238,6 +252,22 @@ class MethodCallNode(ExprNode):
 
     def children(self):
         return [("object", self.obj)] + [("arg", a) for a in self.args]
+
+
+class ReadNode(ExprNode):
+    def label(self):
+        return "Read"
+
+
+class StringLiteralNode(ASTNode):
+    """Not an expression: a string literal can only be printed."""
+
+    def __init__(self, value, line, col):
+        super().__init__(line, col)
+        self.value = value
+
+    def label(self):
+        return f"StringLiteral value={self.value!r}"
 
 
 class IntLiteralNode(ExprNode):
