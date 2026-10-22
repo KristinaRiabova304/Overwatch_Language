@@ -44,11 +44,12 @@ class StmtNode(ASTNode):
 
 
 class VarDeclNode(StmtNode):
-    def __init__(self, mutable, name, var_type, value, line, col):
+    def __init__(self, mutable, name, var_type, type_pos, value, line, col):
         super().__init__(line, col)
         self.mutable = mutable
         self.name = name
         self.var_type = var_type
+        self.type_pos = type_pos
         self.value = value
 
     def label(self):
@@ -89,21 +90,23 @@ class IfNode(StmtNode):
 
 
 class ParamNode(ASTNode):
-    def __init__(self, name, param_type, line, col):
+    def __init__(self, name, param_type, type_pos, line, col):
         super().__init__(line, col)
         self.name = name
         self.param_type = param_type
+        self.type_pos = type_pos
 
     def label(self):
         return f"Param name={self.name} type={self.param_type}"
 
 
 class FunctionDeclNode(StmtNode):
-    def __init__(self, name, params, result_type, body, line, col):
+    def __init__(self, name, params, result_type, type_pos, body, line, col):
         super().__init__(line, col)
         self.name = name
         self.params = params
         self.result_type = result_type
+        self.type_pos = type_pos
         self.body = body
 
     def label(self):
@@ -114,11 +117,12 @@ class FunctionDeclNode(StmtNode):
 
 
 class FieldDeclNode(ASTNode):
-    def __init__(self, mutable, name, field_type, line, col):
+    def __init__(self, mutable, name, field_type, type_pos, line, col):
         super().__init__(line, col)
         self.mutable = mutable
         self.name = name
         self.field_type = field_type
+        self.type_pos = type_pos
 
     def label(self):
         return f"Field name={self.name} mutable={self.mutable} type={self.field_type}"

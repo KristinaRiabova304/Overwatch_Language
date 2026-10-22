@@ -74,15 +74,17 @@ class Parser:
         return self.tokens[idx].kind
 
     # typeName = "🔫" | "🚀" | "ult" | identifier ;
+    # Returns the type name and its (line, col), so that the semantic pass
+    # can point at an unknown structure name.
     def _parse_type(self):
         type_tok = self._peek()
         if type_tok.kind == TokenKind.IDENT:
             self._advance()
-            return type_tok.text
+            return type_tok.text, (type_tok.line, type_tok.col)
         if type_tok.kind not in TYPE_NAMES:
             raise ParseError(type_tok.line, type_tok.col, f"expected a type but found {_found_text(type_tok)}")
         self._advance()
-        return TYPE_NAMES[type_tok.kind]
+        return TYPE_NAMES[type_tok.kind], (type_tok.line, type_tok.col)
 
     # program = { topItem } ;
     def parse_program(self):
@@ -122,9 +124,9 @@ class Parser:
         mutable = decl_tok.kind == TokenKind.KW_FLEX
         name_tok = self._eat(TokenKind.IDENT, "field name")
         self._eat(TokenKind.COLON, "':'")
-        field_type = self._parse_type()
+        field_type, type_pos = self._parse_type()
         self._eat(TokenKind.SEMI, "';'")
-        return FieldDeclNode(mutable, name_tok.text, field_type, name_tok.line, name_tok.col)
+        return FieldDeclNode(mutable, name_tok.text, field_type, type_pos, name_tok.line, name_tok.col)
 
     # functionDecl = "ability" identifier "(" [ param { "," param } ] ")" "->" typeName block ;
     def _parse_function_decl(self):
@@ -139,16 +141,16 @@ class Parser:
                 params.append(self._parse_param())
         self._eat(TokenKind.RPAREN, "')'")
         self._eat(TokenKind.ARROW, "'->'")
-        result_type = self._parse_type()
+        result_type, type_pos = self._parse_type()
         body = self._parse_block()
-        return FunctionDeclNode(name_tok.text, params, result_type, body, ability_tok.line, ability_tok.col)
+        return FunctionDeclNode(name_tok.text, params, result_type, type_pos, body, ability_tok.line, ability_tok.col)
 
     # param = identifier ":" typeName ;
     def _parse_param(self):
         name_tok = self._eat(TokenKind.IDENT, "parameter name")
         self._eat(TokenKind.COLON, "':'")
-        param_type = self._parse_type()
-        return ParamNode(name_tok.text, param_type, name_tok.line, name_tok.col)
+        param_type, type_pos = self._parse_type()
+        return ParamNode(name_tok.text, param_type, type_pos, name_tok.line, name_tok.col)
 
     # statement = varDecl | assignStmt | ifStmt | returnStmt | printStmt | callStmt ;
     def _parse_statement(self):
@@ -250,11 +252,11 @@ class Parser:
         mutable = decl_tok.kind == TokenKind.KW_FLEX
         name_tok = self._eat(TokenKind.IDENT, "identifier")
         self._eat(TokenKind.COLON, "':'")
-        var_type = self._parse_type()
+        var_type, type_pos = self._parse_type()
         self._eat(TokenKind.ASSIGN, "'='")
         value = self._parse_expression()
         self._eat(TokenKind.SEMI, "';'")
-        return VarDeclNode(mutable, name_tok.text, var_type, value, decl_tok.line, decl_tok.col)
+        return VarDeclNode(mutable, name_tok.text, var_type, type_pos, value, decl_tok.line, decl_tok.col)
 
     # ifStmt = "if" expression block [ "else" block ] ;
     def _parse_if(self):
