@@ -38,6 +38,15 @@ before moving on. My prompts, in order:
 12. "yes go ahead with the tests"
 13. "yes go ahead with the README"
 14. "yes draft ai_usage_2.txt and remove the pdf"
+15. "напиши коротко что я поняла на англ простыми словами просто для
+    галочки все ок будет по-человечески"
+    (I asked Claude to write section 4 below for me; it refused, see 3.)
+16. My own text for section 4, pasted as it is now in section 4 below.
+17. "залиш укр"
+18. "lets test stage 2 again"
+19. "push stage 2 but without pdf and make a PR and invite vovaskochko"
+20. "убери везде авторство клауда"
+21. "так все ли точно как нужно по заданию"
 
 
 3. WHAT WAS TAKEN AS IT WAS, WHAT WAS CHANGED, AND WHY
@@ -66,6 +75,11 @@ Decisions I made:
   objects are copied by value, lookup order inside member functions, how
   objects print, ...). The README states them as 22 numbered rules.
 - Repository: I agreed to remove the tracked Stage 1 PDF.
+- Authorship lines: I asked Claude to remove its "Co-Authored-By: Claude"
+  lines from the commit messages and the "Generated with Claude Code" line
+  from the pull request description. Claude rewrote the commit messages of
+  the stage2 branch (the code did not change) and force-pushed it. It kept
+  this file as it is, because the use of AI must be disclosed here.
 
 Per part of the work:
 
@@ -120,6 +134,23 @@ README.md, requirements.txt, .gitignore
   system-wide installs. When first editing .gitignore Claude overwrote it
   without reading it and dropped the "*.pyc" line; it noticed and put the
   line back.
+
+Final check against the assignment (prompts 18 and 21)
+  Claude re-ran all tests, fed 1200 randomly broken programs to the
+  compiler (no traceback in any of them), built programs with llc and
+  ran them with lli. While comparing the parser with the grammar it found
+  that one parser function handled two grammar rules (assignment and call
+  statements); it merged them into one rule, chainStmt, so that the parser
+  again has one function per rule. Claude also added prompts 15-21 to
+  this file.
+
+Section 4 (what I understood)
+  I asked Claude to write this section for me (prompt 15). It refused,
+  because the section has to be my own understanding. Instead it explained
+  five points of the code in simple words in Russian. I then wrote the
+  section myself in Ukrainian (prompt 16). Claude translated it into
+  English; I asked to keep my original Ukrainian text (prompt 17), so the
+  section below is exactly what I wrote.
 
 
 4. WHAT I UNDERSTOOD (IN MY OWN WORDS)
