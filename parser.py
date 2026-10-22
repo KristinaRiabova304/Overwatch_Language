@@ -152,13 +152,13 @@ class Parser:
         param_type, type_pos = self._parse_type()
         return ParamNode(name_tok.text, param_type, type_pos, name_tok.line, name_tok.col)
 
-    # statement = varDecl | assignStmt | ifStmt | returnStmt | printStmt | callStmt ;
+    # statement = varDecl | chainStmt | ifStmt | returnStmt | printStmt ;
     def _parse_statement(self):
         tok = self._peek()
         if tok.kind in (TokenKind.KW_FLEX, TokenKind.DECL_CONST):
             return self._parse_var_decl()
         if tok.kind == TokenKind.IDENT:
-            return self._parse_assign_or_call()
+            return self._parse_chain_stmt()
         if tok.kind == TokenKind.KW_IF:
             return self._parse_if()
         if tok.kind == TokenKind.KW_GG:
@@ -171,12 +171,10 @@ class Parser:
             raise ParseError(tok.line, tok.col, "structures can only be declared at the top level")
         raise ParseError(tok.line, tok.col, f"expected statement but found {_found_text(tok)}")
 
-    # A statement that starts with an identifier is an assignment or a call;
-    # both begin with a postfix chain, so the chain is parsed first and the
-    # next token decides.
-    # assignStmt = postfix "=" expression ";" ;
-    # callStmt   = postfix ";" ;   (the chain must end in a call)
-    def _parse_assign_or_call(self):
+    # chainStmt = postfix [ "=" expression ] ";" ;
+    # With "=" it is an assignment to a variable or a field chain; without,
+    # a call statement, so the chain must end in a call.
+    def _parse_chain_stmt(self):
         target = self._parse_postfix()
         tok = self._peek()
         if tok.kind == TokenKind.ASSIGN:
@@ -221,7 +219,7 @@ class Parser:
         self._eat(TokenKind.RPAREN, "')'")
         return ReadNode(read_tok.line, read_tok.col)
 
-    # call = identifier "(" [ expression { "," expression } ] ")" ;
+    # call = identifier args ;
     def _parse_call(self):
         name_tok = self._eat(TokenKind.IDENT, "function name")
         args = self._parse_args()

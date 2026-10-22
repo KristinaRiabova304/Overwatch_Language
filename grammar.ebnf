@@ -20,8 +20,7 @@ param           ::= identifier ":" typeName ;
 structDecl      ::= "hero" identifier "{" { fieldDecl | functionDecl } "}" ;
 fieldDecl       ::= declKeyword identifier ":" typeName ";" ;
 
-statement       ::= varDecl | assignStmt | ifStmt | returnStmt | printStmt
-                   | callStmt ;
+statement       ::= varDecl | chainStmt | ifStmt | returnStmt | printStmt ;
 
 (* "gg" ("good game") leaves the current function with a value; at the top
    level it ends the program and the value is its exit code. *)
@@ -31,9 +30,11 @@ returnStmt      ::= "gg" expression ";" ;
    newline. A string literal is not an expression: it is allowed only here. *)
 printStmt       ::= "print" "(" ( stringLiteral | expression ) ")" ";" ;
 
-(* A call used as a statement; its result is discarded. The chain must
-   end in a call: f(1); or p.move(2); *)
-callStmt        ::= postfix ";" ;
+(* A statement that starts with a chain. With "=" it is an assignment:
+   the target is a variable or a field chain such as c.center.x, and may
+   not end in a call. Without "=" it is a call statement whose result is
+   discarded, so the chain must end in a call: f(1); or p.move(2); *)
+chainStmt       ::= postfix [ "=" expression ] ";" ;
 call            ::= identifier args ;
 args            ::= "(" [ expression { "," expression } ] ")" ;
 
@@ -47,10 +48,6 @@ declKeyword     ::= "flex" | "🔒" ;
    "ult" is the boolean type (an ultimate is either charged or not).
    An identifier names a structure type declared with "hero". *)
 typeName        ::= "🔫" | "🚀" | "ult" | identifier ;
-
-(* The target is a variable or a field chain such as c.center.x; it may
-   not end in a call. *)
-assignStmt      ::= postfix "=" expression ";" ;
 
 ifStmt          ::= "if" expression block [ "else" block ] ;
 block           ::= "{" statement { statement } "}" ;
