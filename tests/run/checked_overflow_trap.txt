@@ -1,0 +1,6 @@
+// a checked operation that overflows stops the program with exit code 1
+flex hp: 🔫 = 2147483600;
+print(hp +! 47);
+print("before");
+print(hp +! 48);
+print("never printed");

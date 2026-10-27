@@ -1,0 +1,15 @@
+flex hp: 🔫 = 75;
+flex damaged: ult = hp 🚫 100;
+if damaged {
+  if hp 🆚 75 {
+    print("exactly 75");
+  } else {
+    print("other");
+  }
+} else {
+  print("full");
+}
+hp = 100;
+if hp 🆚 100 {
+  print(hp);
+}

@@ -1,0 +1,3 @@
+hero Node {
+  flex next: Node;
+}

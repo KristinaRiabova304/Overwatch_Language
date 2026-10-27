@@ -1,0 +1,6 @@
+// read returns 0 when the input is not an integer
+ability square(x: 🔫) -> 🔫 { gg x *! x; }
+flex n: 🔫 = read();
+flex total: 🔫 = square(n) + read();
+print(total);
+print(read());

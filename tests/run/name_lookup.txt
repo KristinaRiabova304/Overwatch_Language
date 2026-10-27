@@ -1,0 +1,27 @@
+// inside a member function: parameters and locals, then fields, then globals
+flex bonus: 🔫 = 5;
+flex power: 🔫 = 1000;
+hero Hero {
+  flex power: 🔫;
+
+  ability field_power() -> 🔫 { gg power; }
+  ability param_power(power: 🔫) -> 🔫 { gg power; }
+  ability local_power() -> 🔫 {
+    🔒 power: 🔫 = 7;
+    gg power;
+  }
+  ability with_bonus() -> 🔫 { gg bonus + power; }
+}
+ability global_power() -> 🔫 { gg power; }
+
+flex h: Hero = spawn Hero(50);
+print(h.field_power());
+print(h.param_power(9));
+print(h.local_power());
+print(h.with_bonus());
+print(global_power());
+if 🔥 {
+  flex power: 🔫 = 3;
+  print(power);
+}
+print(power);

@@ -1,0 +1,3 @@
+flex n: 🔫 = read();
+print("value:\t");
+print(n +! read());

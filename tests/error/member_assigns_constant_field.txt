@@ -1,0 +1,7 @@
+hero Point {
+  🔒 x: 🔫;
+  ability reset() -> 🔫 {
+    x = 0;
+    gg x;
+  }
+}

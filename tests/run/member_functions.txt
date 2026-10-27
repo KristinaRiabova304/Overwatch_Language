@@ -1,0 +1,35 @@
+hero Tank {
+  flex hp: 🔫;
+  🔒 max_hp: 🔫;
+  flex shield_up: ult;
+
+  ability take(dmg: 🔫) -> 🔫 {
+    if shield_up {
+      hp = hp - dmg / 2;
+    } else {
+      hp = hp - dmg;
+    }
+    gg hp;
+  }
+  ability heal_full() -> 🔫 {
+    hp = max_hp;
+    gg hp;
+  }
+  // mutating too: it calls a mutating member function
+  ability combo(dmg: 🔫) -> 🔫 {
+    take(dmg);
+    gg take(dmg);
+  }
+  ability alive() -> ult {
+    gg hp 🚫 0;
+  }
+}
+flex t: Tank = spawn Tank(500, 600, 🔥);
+print(t.take(100));
+t.shield_up = 💤;
+print(t.combo(100));
+print(t.alive());
+print(t.heal_full());
+print(t);
+🔒 frozen: Tank = spawn Tank(1, 1, 💤);
+print(frozen.alive());

@@ -1,0 +1,29 @@
+hero Point {
+  flex x: 🔫;
+  flex y: 🔫;
+
+  ability shift(d: 🔫) -> 🔫 {
+    x = x + d;
+    y = y + d;
+    gg x;
+  }
+}
+ability moved(p: Point) -> Point {
+  flex q: Point = p;
+  q.shift(10);
+  gg q;
+}
+ability origin() -> Point {
+  gg spawn Point(0, 0);
+}
+flex a: Point = spawn Point(1, 2);
+flex b: Point = a;
+b.x = 100;
+print(a);
+print(b);
+print(moved(a));
+print(a);
+print(origin().x);
+print(moved(origin()).y);
+a = b;
+print(a.x);

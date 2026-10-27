@@ -1,10 +1,42 @@
-(* OWL - Overwatch Workshop Language - grammar, stage 1
+(* OWL - Overwatch Workshop Language - grammar, stage 2
    Notation: ::= definition, | alternation, { } zero-or-more,
              [ ] optional, " " terminal. *)
 
-program         ::= { statement } ;
+(* The top-level statements form the program's entry point; functions are
+   declared only at the top level. *)
+program         ::= { topItem } ;
+topItem         ::= functionDecl | structDecl | statement ;
 
-statement       ::= varDecl | assignStmt | ifStmt ;
+(* Functions: "ability" declares a function (a hero's ability takes inputs
+   and produces a result). Parameters are typed and immutable. *)
+functionDecl    ::= "ability" identifier "(" [ param { "," param } ] ")"
+                    "->" typeName block ;
+param           ::= identifier ":" typeName ;
+
+(* Structures: "hero" declares a named type (a hero is a bundle of stats and
+   abilities). Fields use the same flex / 🔒 keywords as variables: "flex"
+   fields are mutable, "🔒" fields are constant. Member functions are
+   "ability" declarations inside the structure. *)
+structDecl      ::= "hero" identifier "{" { fieldDecl | functionDecl } "}" ;
+fieldDecl       ::= declKeyword identifier ":" typeName ";" ;
+
+statement       ::= varDecl | chainStmt | ifStmt | returnStmt | printStmt ;
+
+(* "gg" ("good game") leaves the current function with a value; at the top
+   level it ends the program and the value is its exit code. *)
+returnStmt      ::= "gg" expression ";" ;
+
+(* print writes an integer, a bool, a string literal or an object, then a
+   newline. A string literal is not an expression: it is allowed only here. *)
+printStmt       ::= "print" "(" ( stringLiteral | expression ) ")" ";" ;
+
+(* A statement that starts with a chain. With "=" it is an assignment:
+   the target is a variable or a field chain such as c.center.x, and may
+   not end in a call. Without "=" it is a call statement whose result is
+   discarded, so the chain must end in a call: f(1); or p.move(2); *)
+chainStmt       ::= postfix [ "=" expression ] ";" ;
+call            ::= identifier args ;
+args            ::= "(" [ expression { "," expression } ] ")" ;
 
 (* Variable declarations. "flex" declares a mutable variable (a flex player
    adapts - the value can change). "🔒" declares an immutable (const)
@@ -13,10 +45,9 @@ varDecl         ::= declKeyword identifier ":" typeName "=" expression ";" ;
 declKeyword     ::= "flex" | "🔒" ;
 
 (* Types: 🔫 is the i32 equivalent, 🚀 is the i64 equivalent,
-   "ult" is the boolean type (an ultimate is either charged or not). *)
-typeName        ::= "🔫" | "🚀" | "ult" ;
-
-assignStmt      ::= identifier "=" expression ";" ;
+   "ult" is the boolean type (an ultimate is either charged or not).
+   An identifier names a structure type declared with "hero". *)
+typeName        ::= "🔫" | "🚀" | "ult" | identifier ;
 
 ifStmt          ::= "if" expression block [ "else" block ] ;
 block           ::= "{" statement { statement } "}" ;
@@ -35,12 +66,25 @@ equality        ::= additive [ ( "🆚" | "🚫" ) additive ] ;
 additive        ::= multiplicative { ( "+" | "-" | "+!" | "-!" ) multiplicative } ;
 multiplicative  ::= unary { ( "*" | "/" | "*!" | "/!" ) unary } ;
 
-unary           ::= "-" unary | primary ;
+unary           ::= "-" unary | postfix ;
+
+(* Field access and member calls chain left to right: c.center.x,
+   c.center.d2(). A "." followed by a name and "(" is a member call. *)
+postfix         ::= primary { "." identifier [ args ] } ;
 
 primary         ::= intLiteral
                    | boolLiteral
+                   | readExpr
+                   | newExpr
+                   | call
                    | identifier
                    | "(" expression ")" ;
+
+(* read reads one 🔫 (i32) integer from standard input. *)
+readExpr        ::= "read" "(" ")" ;
+
+(* "spawn" creates an object: one value per field, in declaration order. *)
+newExpr         ::= "spawn" identifier args ;
 
 (* 🔥 is the "true" equivalent, 💤 is the "false" equivalent. *)
 boolLiteral     ::= "🔥" | "💤" ;
@@ -49,6 +93,19 @@ intLiteral      ::= digit { digit } ;
 identifier      ::= letter { letter | digit | "_" } ;
 letter          ::= "a".."z" | "A".."Z" | "_" ;
 digit           ::= "0".."9" ;
+
+(* Lexical rules for the stage 2 symbols. "ability", "gg", "hero", "spawn",
+   "read" and "print" are keywords and cannot be used as identifiers. "->" is a single
+   token: a "-" immediately followed by ">" is always the arrow. *)
+arrow           ::= "->" ;
+comma           ::= "," ;
+dot             ::= "." ;
+
+(* A string literal stays on one line. Escapes: \n newline, \t tab,
+   \" quote, \\ backslash; any other backslash sequence is an error. *)
+stringLiteral   ::= '"' { stringChar | escape } '"' ;
+stringChar      ::= any character except '"', '\' and newline ;
+escape          ::= '\' ( "n" | "t" | '"' | '\' ) ;
 
 (* Comments run from "//" to the end of the line and are discarded by the
    lexer; they never reach the parser or the AST. *)
