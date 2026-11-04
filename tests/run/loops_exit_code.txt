@@ -1,0 +1,8 @@
+// gg at the top level ends the program from inside a loop.
+🔂 i: 🔫 = 0..10 {
+  if i 🆚 4 {
+    gg i;
+  }
+  print(i);
+}
+print("never");

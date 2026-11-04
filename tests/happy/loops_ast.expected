@@ -1,0 +1,19 @@
+Program
+  VarDecl name=n mutable=True type=i32
+    IntLiteral value=2
+  While
+    condition: BinaryExpr op=GT checked=False
+      left: Ident name=n
+      right: IntLiteral value=0
+    body: Block
+      Assign name=n
+        BinaryExpr op=SUB checked=False
+          left: Ident name=n
+          right: IntLiteral value=1
+      Break
+  For name=i type=i64
+    start: IntLiteral value=0
+    end: IntLiteral value=3
+    body: Block
+      Print
+        Ident name=i

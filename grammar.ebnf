@@ -1,4 +1,4 @@
-(* OWL - Overwatch Workshop Language - grammar, stage 2
+(* OWL - Overwatch Workshop Language - grammar, stage 3
    Notation: ::= definition, | alternation, { } zero-or-more,
              [ ] optional, " " terminal. *)
 
@@ -20,7 +20,8 @@ param           ::= identifier ":" typeName ;
 structDecl      ::= "hero" identifier "{" { fieldDecl | functionDecl } "}" ;
 fieldDecl       ::= declKeyword identifier ":" typeName ";" ;
 
-statement       ::= varDecl | chainStmt | ifStmt | returnStmt | printStmt ;
+statement       ::= varDecl | chainStmt | ifStmt | whileStmt | forStmt
+                   | breakStmt | returnStmt | printStmt ;
 
 (* "gg" ("good game") leaves the current function with a value; at the top
    level it ends the program and the value is its exit code. *)
@@ -52,11 +53,19 @@ typeName        ::= "🔫" | "🚀" | "ult" | identifier ;
 ifStmt          ::= "if" expression block [ "else" block ] ;
 block           ::= "{" statement { statement } "}" ;
 
-expression      ::= equality ;
+(* Loops. 🔁 repeats while the condition is 🔥. 🔂 runs its body for
+   start <= i < end: both bounds are evaluated once, before the first
+   iteration, and i is constant in the body. 🛑 leaves the innermost loop. *)
+whileStmt       ::= "🔁" expression block ;
+forStmt         ::= "🔂" identifier ":" typeName "=" expression ".." expression block ;
+breakStmt       ::= "🛑" ";" ;
 
-(* Comparison: 🆚 is the "==" equivalent, 🚫 is the "!=" equivalent.
-   Comparisons do not chain: at most one is allowed per expression. *)
-equality        ::= additive [ ( "🆚" | "🚫" ) additive ] ;
+expression      ::= comparison ;
+
+(* Comparison: 🆚 is the "==" equivalent, 🚫 is the "!=" equivalent; "<" and
+   ">" compare integers. Comparisons do not chain: at most one is allowed per
+   expression. *)
+comparison      ::= additive [ ( "🆚" | "🚫" | "<" | ">" ) additive ] ;
 
 (* Each arithmetic operator has an "unchecked" (wrapping) form and a
    "checked" (overflow-checked) form spelled with a trailing "!". Whether a
@@ -100,6 +109,7 @@ digit           ::= "0".."9" ;
 arrow           ::= "->" ;
 comma           ::= "," ;
 dot             ::= "." ;
+dotdot          ::= ".." ;
 
 (* A string literal stays on one line. Escapes: \n newline, \t tab,
    \" quote, \\ backslash; any other backslash sequence is an error. *)

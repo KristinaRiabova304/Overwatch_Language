@@ -24,6 +24,9 @@ class TokenKind(Enum):
     FALSE = auto()         # 💤
     EQ = auto()            # 🆚  ==
     NEQ = auto()           # 🚫  !=
+    WHILE = auto()         # 🔁 - while loop
+    FOR = auto()           # 🔂 - for loop over an integer range
+    BREAK = auto()         # 🛑 - leave the innermost loop
     COLON = auto()
     SEMI = auto()
     LBRACE = auto()
@@ -32,6 +35,9 @@ class TokenKind(Enum):
     RPAREN = auto()
     COMMA = auto()
     DOT = auto()
+    DOTDOT = auto()         # .. between the bounds of a range
+    LT = auto()
+    GT = auto()
     ARROW = auto()          # ->
     ASSIGN = auto()
     PLUS = auto()
@@ -70,6 +76,9 @@ EMOJI_TOKENS = {
     "💤".encode("utf-8"): (TokenKind.FALSE, "💤"),
     "🆚".encode("utf-8"): (TokenKind.EQ, "🆚"),
     "🚫".encode("utf-8"): (TokenKind.NEQ, "🚫"),
+    "🔁".encode("utf-8"): (TokenKind.WHILE, "🔁"),
+    "🔂".encode("utf-8"): (TokenKind.FOR, "🔂"),
+    "🛑".encode("utf-8"): (TokenKind.BREAK, "🛑"),
 }
 
 SINGLE_BYTE_TOKENS = {
@@ -82,6 +91,8 @@ SINGLE_BYTE_TOKENS = {
     0x2C: TokenKind.COMMA,   # ,
     0x2E: TokenKind.DOT,     # .
     0x3D: TokenKind.ASSIGN,  # =
+    0x3C: TokenKind.LT,      # <
+    0x3E: TokenKind.GT,      # >
 }
 
 # Arithmetic operators that come in an "unchecked" (wrapping) flavor and a
@@ -195,6 +206,10 @@ class Lexer:
 
         if b == 0x22:  # '"'
             return self._lex_string(line, col)
+
+        if b == 0x2E and self._peek_byte(1) == 0x2E:  # ".."
+            self._advance(2)
+            return Token(TokenKind.DOTDOT, "..", line, col)
 
         if b in SINGLE_BYTE_TOKENS:
             self._advance()

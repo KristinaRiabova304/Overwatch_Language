@@ -89,6 +89,43 @@ class IfNode(StmtNode):
         return result
 
 
+class WhileNode(StmtNode):
+    def __init__(self, condition, body, line, col):
+        super().__init__(line, col)
+        self.condition = condition
+        self.body = body
+
+    def label(self):
+        return "While"
+
+    def children(self):
+        return [("condition", self.condition), ("body", self.body)]
+
+
+class ForNode(StmtNode):
+    """A loop over the integers start <= name < end."""
+
+    def __init__(self, name, var_type, type_pos, start, end, body, line, col):
+        super().__init__(line, col)
+        self.name = name
+        self.var_type = var_type
+        self.type_pos = type_pos
+        self.start = start
+        self.end = end
+        self.body = body
+
+    def label(self):
+        return f"For name={self.name} type={self.var_type}"
+
+    def children(self):
+        return [("start", self.start), ("end", self.end), ("body", self.body)]
+
+
+class BreakNode(StmtNode):
+    def label(self):
+        return "Break"
+
+
 class ParamNode(ASTNode):
     def __init__(self, name, param_type, type_pos, line, col):
         super().__init__(line, col)

@@ -1,0 +1,18 @@
+// Adds 5 + 4 + 3 + 2 + 1 with a countdown.
+flex n: 🔫 = 5;
+flex sum: 🔫 = 0;
+🔁 n > 0 {
+  sum = sum + n;
+  n = n - 1;
+}
+print(sum);
+print(n);
+// A body whose condition is false at once never runs.
+🔁 💤 {
+  print("never");
+}
+flex m: 🚀 = 3;
+🔁 m < 3 {
+  m = m + 1;
+}
+print(m);

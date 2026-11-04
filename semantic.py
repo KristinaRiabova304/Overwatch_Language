@@ -12,12 +12,12 @@ code generator never has to look a name up again:
   MethodCallNode     .func    the FuncInfo of the member function
   NewNode / StructDeclNode .struct  the StructInfo
   FunctionDeclNode   .func    the FuncInfo
-  VarDeclNode        .var     the VarInfo it declares
+  VarDeclNode / ForNode .var  the VarInfo it declares
   ProgramNode        .structs, .functions   the tables, in declaration order
 """
 
 from ast_nodes import (
-    ProgramNode, BlockNode, VarDeclNode, AssignNode, IfNode,
+    ProgramNode, BlockNode, VarDeclNode, AssignNode, IfNode, WhileNode, ForNode, BreakNode,
     IntLiteralNode, BoolLiteralNode, IdentNode, UnaryExprNode, BinaryExprNode,
     FunctionDeclNode, ReturnNode, ExprStmtNode, CallNode,
     StructDeclNode, FieldAssignNode, NewNode, FieldAccessNode, MethodCallNode,
@@ -119,6 +119,7 @@ class Analyzer:
         self.current_func = None   # FuncInfo being checked, None at top level
         self.current_struct = None
         self.pending_calls = []
+        self.loop_depth = 0        # how many loops enclose the current statement
 
     # ---- entry point -------------------------------------------------
 
@@ -226,9 +227,10 @@ class Analyzer:
         """Checks a statement list and returns True when every path through
         it ends in gg."""
         returns = False
+        stopped_by = None
         for stmt in statements:
-            if returns:
-                raise SemanticError(stmt.line, stmt.col, "unreachable statement after 'gg'")
+            if stopped_by:
+                raise SemanticError(stmt.line, stmt.col, f"unreachable statement after '{stopped_by}'")
             if isinstance(stmt, FunctionDeclNode):
                 self._check_function(stmt, None)
             elif isinstance(stmt, StructDeclNode):
@@ -236,6 +238,10 @@ class Analyzer:
                     self._check_function(method, stmt.struct)
             else:
                 returns = self._check_statement(stmt)
+                if returns:
+                    stopped_by = "gg"
+                elif isinstance(stmt, BreakNode):
+                    stopped_by = "🛑"
         return returns
 
     def _check_block(self, block):
@@ -306,6 +312,32 @@ class Analyzer:
             else_returns = self._check_block(stmt.else_block) if stmt.else_block else False
             return then_returns and else_returns
 
+        if isinstance(stmt, WhileNode):
+            self._expect(stmt.condition, "bool", "the condition")
+            self._check_loop_body(lambda: self._check_block(stmt.body))
+            return False  # Rule: a loop body may not run, so a loop never ends every path.
+
+        if isinstance(stmt, ForNode):
+            self._check_type_exists(stmt.var_type, stmt.type_pos)
+            if stmt.var_type not in INT_TYPES:
+                raise SemanticError(*stmt.type_pos,
+                                    f"a loop variable must be an integer but found {spell(stmt.var_type)}")
+            # The bounds are checked before the variable exists, so they cannot use it.
+            self._expect(stmt.start, stmt.var_type, "the start of the range")
+            self._expect(stmt.end, stmt.var_type, "the end of the range")
+            stmt.var = VarInfo(stmt.name, stmt.var_type, False, "local")
+            # The body shares one scope with the loop variable, so a local
+            # cannot redeclare it.
+            self.scopes.append({stmt.name: stmt.var})
+            self._check_loop_body(lambda: self._check_statements(stmt.body.statements))
+            self.scopes.pop()
+            return False
+
+        if isinstance(stmt, BreakNode):
+            if self.loop_depth == 0:
+                raise SemanticError(stmt.line, stmt.col, "'🛑' can only be used inside a loop")
+            return False
+
         if isinstance(stmt, ReturnNode):
             if self.current_func is None:
                 # Rule: gg at the top level ends the program; its value is
@@ -326,6 +358,11 @@ class Analyzer:
             return False
 
         raise SemanticError(stmt.line, stmt.col, f"unsupported statement {stmt.label()}")
+
+    def _check_loop_body(self, check):
+        self.loop_depth += 1
+        check()
+        self.loop_depth -= 1
 
     # ---- expressions -------------------------------------------------
 
@@ -420,6 +457,11 @@ class Analyzer:
             left_ty, right_ty = self._check_operands(expr, None)
             if left_ty not in PRIMITIVE_TYPES:
                 raise SemanticError(expr.line, expr.col, f"cannot compare {spell(left_ty)} values")
+            return "bool"
+        if expr.op in ("LT", "GT"):
+            left_ty, right_ty = self._check_operands(expr, None)
+            if left_ty not in INT_TYPES:
+                raise SemanticError(expr.line, expr.col, f"'<' and '>' need integers but found {spell(left_ty)}")
             return "bool"
         left_ty, right_ty = self._check_operands(expr, hint)
         if left_ty not in INT_TYPES:
@@ -541,7 +583,7 @@ def _is_literal(expr):
         return True
     if isinstance(expr, UnaryExprNode):
         return _is_literal(expr.operand)
-    if isinstance(expr, BinaryExprNode) and expr.op not in ("EQ", "NEQ"):
+    if isinstance(expr, BinaryExprNode) and expr.op not in ("EQ", "NEQ", "LT", "GT"):
         return _is_literal(expr.left) and _is_literal(expr.right)
     return False
 

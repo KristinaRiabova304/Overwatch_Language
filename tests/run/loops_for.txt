@@ -1,0 +1,29 @@
+// The bounds are evaluated once, start first.
+ability bound(x: 🔫) -> 🔫 {
+  print("bound");
+  gg x;
+}
+🔂 i: 🔫 = bound(1)..bound(3) {
+  print(i);
+}
+// Empty ranges.
+🔂 i: 🔫 = 5..5 {
+  print("never");
+}
+🔂 i: 🔫 = 7..2 {
+  print("never");
+}
+// The variable can be a 🚀.
+🔂 big: 🚀 = 3000000000..3000000002 {
+  print(big);
+}
+// Changing what the end was computed from does not change the range.
+flex end: 🔫 = 2;
+🔂 i: 🔫 = 0..end {
+  end = 100;
+  print(i);
+}
+// The last value below the largest 🔫: the step must not overflow.
+🔂 i: 🔫 = 2147483646..2147483647 {
+  print(i);
+}

@@ -4,7 +4,7 @@ produced by lexer.py. One function per grammar rule in grammar.ebnf."""
 
 from lexer import TokenKind
 from ast_nodes import (
-    ProgramNode, BlockNode, VarDeclNode, AssignNode, IfNode,
+    ProgramNode, BlockNode, VarDeclNode, AssignNode, IfNode, WhileNode, ForNode, BreakNode,
     IntLiteralNode, BoolLiteralNode, IdentNode, UnaryExprNode, BinaryExprNode,
     ParamNode, FunctionDeclNode, ReturnNode, ExprStmtNode, CallNode,
     FieldDeclNode, StructDeclNode, FieldAssignNode, NewNode, FieldAccessNode, MethodCallNode,
@@ -31,9 +31,11 @@ MUL_OPS = {
     TokenKind.SLASH_CHECKED: ("DIV", True),
 }
 
-EQ_OPS = {
+COMPARE_OPS = {
     TokenKind.EQ: "EQ",
     TokenKind.NEQ: "NEQ",
+    TokenKind.LT: "LT",
+    TokenKind.GT: "GT",
 }
 
 
@@ -152,7 +154,8 @@ class Parser:
         param_type, type_pos = self._parse_type()
         return ParamNode(name_tok.text, param_type, type_pos, name_tok.line, name_tok.col)
 
-    # statement = varDecl | chainStmt | ifStmt | returnStmt | printStmt ;
+    # statement = varDecl | chainStmt | ifStmt | whileStmt | forStmt | breakStmt
+    #           | returnStmt | printStmt ;
     def _parse_statement(self):
         tok = self._peek()
         if tok.kind in (TokenKind.KW_FLEX, TokenKind.DECL_CONST):
@@ -161,6 +164,12 @@ class Parser:
             return self._parse_chain_stmt()
         if tok.kind == TokenKind.KW_IF:
             return self._parse_if()
+        if tok.kind == TokenKind.WHILE:
+            return self._parse_while()
+        if tok.kind == TokenKind.FOR:
+            return self._parse_for()
+        if tok.kind == TokenKind.BREAK:
+            return self._parse_break()
         if tok.kind == TokenKind.KW_GG:
             return self._parse_return()
         if tok.kind == TokenKind.KW_PRINT:
@@ -267,6 +276,32 @@ class Parser:
             else_block = self._parse_block()
         return IfNode(condition, then_block, else_block, if_tok.line, if_tok.col)
 
+    # whileStmt = "🔁" expression block ;
+    def _parse_while(self):
+        while_tok = self._eat(TokenKind.WHILE, "'🔁'")
+        condition = self._parse_expression()
+        body = self._parse_block()
+        return WhileNode(condition, body, while_tok.line, while_tok.col)
+
+    # forStmt = "🔂" identifier ":" typeName "=" expression ".." expression block ;
+    def _parse_for(self):
+        for_tok = self._eat(TokenKind.FOR, "'🔂'")
+        name_tok = self._eat(TokenKind.IDENT, "loop variable name")
+        self._eat(TokenKind.COLON, "':'")
+        var_type, type_pos = self._parse_type()
+        self._eat(TokenKind.ASSIGN, "'='")
+        start = self._parse_expression()
+        self._eat(TokenKind.DOTDOT, "'..'")
+        end = self._parse_expression()
+        body = self._parse_block()
+        return ForNode(name_tok.text, var_type, type_pos, start, end, body, for_tok.line, for_tok.col)
+
+    # breakStmt = "🛑" ";" ;
+    def _parse_break(self):
+        break_tok = self._eat(TokenKind.BREAK, "'🛑'")
+        self._eat(TokenKind.SEMI, "';'")
+        return BreakNode(break_tok.line, break_tok.col)
+
     # block = "{" statement { statement } "}" ;
     def _parse_block(self):
         brace_tok = self._eat(TokenKind.LBRACE, "'{'")
@@ -281,17 +316,17 @@ class Parser:
         self._eat(TokenKind.RBRACE, "'}'")
         return BlockNode(statements, brace_tok.line, brace_tok.col)
 
-    # expression = equality ;
+    # expression = comparison ;
     def _parse_expression(self):
-        return self._parse_equality()
+        return self._parse_comparison()
 
-    # equality = additive [ ( "🆚" | "🚫" ) additive ] ;
-    def _parse_equality(self):
+    # comparison = additive [ ( "🆚" | "🚫" | "<" | ">" ) additive ] ;
+    def _parse_comparison(self):
         left = self._parse_additive()
-        if self._peek().kind in EQ_OPS:
+        if self._peek().kind in COMPARE_OPS:
             op_tok = self._advance()
             right = self._parse_additive()
-            left = BinaryExprNode(EQ_OPS[op_tok.kind], False, left, right, op_tok.line, op_tok.col)
+            left = BinaryExprNode(COMPARE_OPS[op_tok.kind], False, left, right, op_tok.line, op_tok.col)
         return left
 
     # additive = multiplicative { ( "+" | "-" | "+!" | "-!" ) multiplicative } ;

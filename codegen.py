@@ -17,7 +17,7 @@ import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
 from ast_nodes import (
-    VarDeclNode, AssignNode, IfNode,
+    VarDeclNode, AssignNode, IfNode, WhileNode, ForNode, BreakNode,
     IntLiteralNode, BoolLiteralNode, IdentNode, UnaryExprNode, BinaryExprNode,
     FunctionDeclNode, ReturnNode, ExprStmtNode, CallNode,
     StructDeclNode, FieldAssignNode, NewNode, FieldAccessNode, MethodCallNode,
@@ -33,6 +33,8 @@ I8P = I8.as_pointer()
 
 PRIMITIVE_LLVM = {"i32": I32, "i64": I64, "bool": I1}
 PRINTF_FORMAT = {"i32": "%d", "i64": "%lld"}
+
+COMPARE_OPS = {"EQ": "==", "NEQ": "!=", "LT": "<", "GT": ">"}
 
 # Overflow intrinsics for the checked operators +! -! *!
 OVERFLOW_INTRINSICS = {
@@ -55,6 +57,7 @@ class CodeGen:
         self.builder = None
         self.alloca_builder = None
         self.self_ptr = None     # the object pointer inside a member function
+        self.loop_ends = []      # the block after each enclosing loop, innermost last
 
     # ---- module ------------------------------------------------------
 
@@ -62,6 +65,7 @@ class CodeGen:
         self._declare_runtime()
         self._declare_struct_types()
         self._declare_functions()
+        self._declare_globals()
         self._generate_main()
         for func in self.program.functions:
             self._generate_function(func)
@@ -116,6 +120,16 @@ class CodeGen:
                                           [obj_ptr] + [self._llvm_type(t) for t in method.param_types])
                 self.functions[method] = ir.Function(self.module, fn_type,
                                                      name=f"owl.{struct.name}.{method.name}")
+
+    def _declare_globals(self):
+        # Every global exists before any code is generated: after inlining,
+        # code in main can read a global above its declaration, which sees
+        # the zero a call would have seen.
+        for stmt in self.program.statements:
+            if isinstance(stmt, VarDeclNode) and stmt.var.kind == "global":
+                slot = ir.GlobalVariable(self.module, self._llvm_type(stmt.var_type), name=f"owl.g.{stmt.name}")
+                slot.initializer = ir.Constant(slot.value_type, None)  # zero until the declaration runs
+                self.vars[stmt.var] = slot
 
     def _llvm_type(self, ty):
         if ty in PRIMITIVE_LLVM:
@@ -178,13 +192,9 @@ class CodeGen:
         b = self.builder
         if isinstance(stmt, VarDeclNode):
             value = self._gen_expr(stmt.value)
-            if stmt.var.kind == "global":
-                slot = ir.GlobalVariable(self.module, self._llvm_type(stmt.var_type), name=f"owl.g.{stmt.name}")
-                slot.initializer = ir.Constant(slot.value_type, None)  # zero until the declaration runs
-            else:
-                slot = self._alloca(stmt.var_type, stmt.name)
-            self.vars[stmt.var] = slot
-            b.store(value, slot)
+            if stmt.var.kind != "global":
+                self.vars[stmt.var] = self._alloca(stmt.var_type, stmt.name)
+            b.store(value, self.vars[stmt.var])
 
         elif isinstance(stmt, AssignNode):
             value = self._gen_expr(stmt.value)
@@ -196,6 +206,15 @@ class CodeGen:
 
         elif isinstance(stmt, IfNode):
             self._gen_if(stmt)
+
+        elif isinstance(stmt, WhileNode):
+            self._gen_while(stmt)
+
+        elif isinstance(stmt, ForNode):
+            self._gen_for(stmt)
+
+        elif isinstance(stmt, BreakNode):
+            b.branch(self.loop_ends[-1])
 
         elif isinstance(stmt, ReturnNode):
             b.ret(self._gen_expr(stmt.value))
@@ -226,6 +245,60 @@ class CodeGen:
                 b.branch(end_block)
 
         b.position_at_end(end_block)
+
+    def _gen_while(self, stmt):
+        b = self.builder
+        cond_block = b.append_basic_block("while.cond")
+        body_block = b.append_basic_block("while.body")
+        end_block = b.append_basic_block("while.end")
+        b.branch(cond_block)
+
+        b.position_at_end(cond_block)
+        b.cbranch(self._gen_expr(stmt.condition), body_block, end_block)
+
+        b.position_at_end(body_block)
+        self._gen_loop_body(stmt.body.statements, end_block)
+        if not b.block.is_terminated:
+            b.branch(cond_block)  # the back edge
+
+        b.position_at_end(end_block)
+
+    def _gen_for(self, stmt):
+        b = self.builder
+        slot = self._alloca(stmt.var_type, stmt.name)
+        end_slot = self._alloca(stmt.var_type, f"{stmt.name}.end")
+        self.vars[stmt.var] = slot
+        # Both bounds are evaluated once, before the first iteration.
+        b.store(self._gen_expr(stmt.start), slot)
+        b.store(self._gen_expr(stmt.end), end_slot)
+        cond_block = b.append_basic_block("for.cond")
+        body_block = b.append_basic_block("for.body")
+        step_block = b.append_basic_block("for.step")
+        end_block = b.append_basic_block("for.end")
+        b.branch(cond_block)
+
+        b.position_at_end(cond_block)
+        in_range = b.icmp_signed("<", b.load(slot, name=stmt.name), b.load(end_slot))
+        b.cbranch(in_range, body_block, end_block)
+
+        b.position_at_end(body_block)
+        self._gen_loop_body(stmt.body.statements, end_block)
+        if not b.block.is_terminated:
+            b.branch(step_block)
+
+        # The step cannot overflow: the variable is below end, so at most it
+        # reaches end.
+        b.position_at_end(step_block)
+        one = ir.Constant(self._llvm_type(stmt.var_type), 1)
+        b.store(b.add(b.load(slot, name=stmt.name), one), slot)
+        b.branch(cond_block)  # the back edge
+
+        b.position_at_end(end_block)
+
+    def _gen_loop_body(self, statements, end_block):
+        self.loop_ends.append(end_block)
+        self._gen_statements(statements)
+        self.loop_ends.pop()
 
     # ---- addresses ---------------------------------------------------
 
@@ -306,9 +379,8 @@ class CodeGen:
         left = self._gen_expr(expr.left)
         right = self._gen_expr(expr.right)
 
-        if expr.op in ("EQ", "NEQ"):
-            op = "==" if expr.op == "EQ" else "!="
-            return b.icmp_signed(op, left, right)
+        if expr.op in COMPARE_OPS:
+            return b.icmp_signed(COMPARE_OPS[expr.op], left, right)
 
         if expr.op == "DIV":
             return self._gen_div(left, right, expr.checked)

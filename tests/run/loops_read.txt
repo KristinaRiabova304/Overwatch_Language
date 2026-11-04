@@ -1,0 +1,13 @@
+// Reads numbers until a 0; prints their sum and the largest.
+flex sum: 🔫 = 0;
+flex largest: 🔫 = 0;
+flex n: 🔫 = read();
+🔁 n 🚫 0 {
+  sum = sum + n;
+  if n > largest {
+    largest = n;
+  }
+  n = read();
+}
+print(sum);
+print(largest);

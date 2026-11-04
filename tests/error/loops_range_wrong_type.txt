@@ -1,0 +1,4 @@
+flex big: 🚀 = 5;
+🔂 i: 🔫 = 0..big {
+  print(i);
+}
