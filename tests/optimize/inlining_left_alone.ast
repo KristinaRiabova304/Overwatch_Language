@@ -1,0 +1,81 @@
+Program
+  VarDecl name=g mutable=True type=i32
+    IntLiteral value=1
+  FunctionDecl name=fact result=i32
+    param: Param name=n type=i32
+    body: Block
+      If
+        condition: BinaryExpr op=EQ checked=False
+          left: Ident name=n
+          right: IntLiteral value=0
+        then: Block
+          Return
+            IntLiteral value=1
+      Return
+        BinaryExpr op=MUL checked=False
+          left: Ident name=n
+          right: Call name=fact args=1
+            arg: BinaryExpr op=SUB checked=False
+              left: Ident name=n
+              right: IntLiteral value=1
+  FunctionDecl name=sign result=i32
+    param: Param name=n type=i32
+    body: Block
+      If
+        condition: BinaryExpr op=LT checked=False
+          left: Ident name=n
+          right: IntLiteral value=0
+        then: Block
+          Return
+            UnaryExpr op=NEG
+              IntLiteral value=1
+      Return
+        IntLiteral value=1
+  FunctionDecl name=below_three result=bool
+    param: Param name=n type=i32
+    body: Block
+      Print
+        StringLiteral value='checked'
+      Return
+        BinaryExpr op=LT checked=False
+          left: Ident name=n
+          right: IntLiteral value=3
+  FunctionDecl name=bump result=i32
+    body: Block
+      Assign name=g
+        BinaryExpr op=ADD checked=False
+          left: Ident name=g
+          right: IntLiteral value=1
+      Return
+        IntLiteral value=10
+  StructDecl name=Box
+    field: Field name=v mutable=False type=i32
+    method: FunctionDecl name=get result=i32
+      body: Block
+        Return
+          Ident name=v
+  Print
+    Call name=fact args=1
+      arg: IntLiteral value=3
+  Print
+    Call name=sign args=1
+      arg: UnaryExpr op=NEG
+        IntLiteral value=4
+  VarDecl name=n mutable=True type=i32
+    IntLiteral value=2
+  While
+    condition: Call name=below_three args=1
+      arg: Ident name=n
+    body: Block
+      Assign name=n
+        BinaryExpr op=ADD checked=False
+          left: Ident name=n
+          right: IntLiteral value=1
+  Print
+    BinaryExpr op=ADD checked=False
+      left: Ident name=g
+      right: Call name=bump args=0
+  Print
+    MethodCall name=get args=0
+      object: New type=Box args=1
+        arg: IntLiteral value=2

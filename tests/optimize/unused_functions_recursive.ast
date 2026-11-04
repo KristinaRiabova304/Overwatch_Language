@@ -1,0 +1,21 @@
+Program
+  FunctionDecl name=fact result=i32
+    param: Param name=n type=i32
+    body: Block
+      If
+        condition: BinaryExpr op=EQ checked=False
+          left: Ident name=n
+          right: IntLiteral value=0
+        then: Block
+          Return
+            IntLiteral value=1
+      Return
+        BinaryExpr op=MUL checked=False
+          left: Ident name=n
+          right: Call name=fact args=1
+            arg: BinaryExpr op=SUB checked=False
+              left: Ident name=n
+              right: IntLiteral value=1
+  Print
+    Call name=fact args=1
+      arg: IntLiteral value=4

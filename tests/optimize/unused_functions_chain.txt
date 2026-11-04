@@ -1,0 +1,23 @@
+// Nobody calls first; removing it leaves second unused, then third.
+// The member function nobody calls goes too.
+ability third() -> 🔫 {
+  gg 3;
+}
+ability second() -> 🔫 {
+  gg third();
+}
+ability first() -> 🔫 {
+  gg second();
+}
+hero Box {
+  🔒 v: 🔫;
+  ability unused_member() -> 🔫 {
+    gg v;
+  }
+  ability get() -> 🔫 {
+    gg v;
+  }
+}
+🔒 b: Box = spawn Box(9);
+print(b.get());
+print(b.get());

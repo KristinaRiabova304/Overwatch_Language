@@ -1,0 +1,5 @@
+Program
+  StructDecl name=Point
+    field: Field name=x mutable=True type=i32
+  Print
+    IntLiteral value=5

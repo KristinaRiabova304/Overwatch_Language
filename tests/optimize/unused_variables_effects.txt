@@ -1,0 +1,20 @@
+// A call, read() or a division that can trap stays when its variable goes.
+// Only the inner x is unread: shadowing is respected.
+ability noisy(n: 🔫) -> 🔫 {
+  if n 🆚 0 {
+    gg 0;
+  }
+  print("noisy");
+  gg n;
+}
+flex x: 🔫 = 1;
+flex kept: 🔫 = noisy(1);
+if x 🆚 1 {
+  flex x: 🔫 = 2;
+  x = 3;
+  print("inner");
+}
+flex typed: 🔫 = read();
+kept = noisy(2);
+flex quotient: 🔫 = 10 / x;
+print(x);

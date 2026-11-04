@@ -1,0 +1,11 @@
+// Removing c leaves b unread, and removing b leaves a unread.
+flex a: 🔫 = 1;
+flex b: 🔫 = a + 1;
+flex c: 🔫 = b + 1;
+c = 7;
+hero Point {
+  flex x: 🔫;
+}
+flex p: Point = spawn Point(a);
+p.x = 2;
+print(5);

@@ -1,0 +1,16 @@
+Program
+  StructDecl name=Box
+    field: Field name=v mutable=False type=i32
+    method: FunctionDecl name=get result=i32
+      body: Block
+        Return
+          Ident name=v
+  VarDecl name=b mutable=False type=Box
+    New type=Box args=1
+      arg: IntLiteral value=9
+  Print
+    MethodCall name=get args=0
+      object: Ident name=b
+  Print
+    MethodCall name=get args=0
+      object: Ident name=b

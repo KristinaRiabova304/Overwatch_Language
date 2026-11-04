@@ -1,0 +1,24 @@
+// A recursive function nobody else calls is unused, and so is a pair that
+// only calls each other. The recursive function main uses stays.
+ability is_even(n: 🔫) -> ult {
+  if n 🆚 0 {
+    gg 🔥;
+  }
+  gg is_odd(n - 1);
+}
+ability is_odd(n: 🔫) -> ult {
+  if n 🆚 0 {
+    gg 💤;
+  }
+  gg is_even(n - 1);
+}
+ability spin(n: 🔫) -> 🔫 {
+  gg spin(n);
+}
+ability fact(n: 🔫) -> 🔫 {
+  if n 🆚 0 {
+    gg 1;
+  }
+  gg n * fact(n - 1);
+}
+print(fact(4));

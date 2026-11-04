@@ -1,0 +1,13 @@
+// heal is called once. Its parameter and local are renamed, so they cannot
+// collide with the caller's hp and bonus.
+ability heal(hp: 🔫, amount: 🔫) -> 🔫 {
+  flex bonus: 🔫 = amount * 2;
+  print(bonus);
+  gg hp + bonus;
+}
+flex hp: 🔫 = 10;
+flex bonus: 🔫 = 1;
+flex result: 🔫 = heal(hp, 5);
+print(result);
+print(hp);
+print(bonus);

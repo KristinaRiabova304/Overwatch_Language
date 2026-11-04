@@ -1,0 +1,19 @@
+Program
+  For name=i type=i32
+    start: IntLiteral value=0
+    end: IntLiteral value=2
+    body: Block
+      VarDecl name=outer_x_3 mutable=False type=i32
+        Ident name=i
+      Print
+        StringLiteral value='outer'
+      VarDecl name=outer_inner_x_1_4 mutable=False type=i32
+        Ident name=outer_x_3
+      VarDecl name=outer_inner_doubled_2_5 mutable=True type=i32
+        BinaryExpr op=MUL checked=False
+          left: Ident name=outer_inner_x_1_4
+          right: IntLiteral value=2
+      Print
+        BinaryExpr op=ADD checked=False
+          left: Ident name=outer_inner_doubled_2_5
+          right: IntLiteral value=1
