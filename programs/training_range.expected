@@ -1,0 +1,33 @@
+=== OWL training range ===
+Bot health, 1 to 1000 (0 for 100):
+Bot armor, 1 to 50 (0 for 5):
+Bot { hp: 100, max_hp: 100, armor: 5, hits: 0 }
+Choose: 1 fire a burst, 2 repair, 3 forecast, 4 status, 0 leave
+How many shots, 1 to 20 (0 to cancel)?
+Damage per shot, 1 to 500 (0 to cancel)?
+Shot number, then damage dealt:
+1
+25
+Shot number, then damage dealt:
+2
+25
+Shot number, then damage dealt:
+3
+25
+Total damage:
+75
+Choose: 1 fire a burst, 2 repair, 3 forecast, 4 status, 0 leave
+Bot { hp: 25, max_hp: 100, armor: 5, hits: 3 }
+Health percent:
+25
+Choose: 1 fire a burst, 2 repair, 3 forecast, 4 status, 0 leave
+How many shots, 1 to 20 (0 to cancel)?
+Damage per shot, 1 to 500 (0 to cancel)?
+Shot number, then damage dealt:
+1
+25
+Bot destroyed!
+Total damage:
+25
+Session over. Shots that hit:
+4
