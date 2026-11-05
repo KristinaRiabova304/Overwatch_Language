@@ -1,0 +1,23 @@
+// gg leaves a function from inside a loop; member functions can loop too.
+ability smallest_divisor(n: 🔫) -> 🔫 {
+  🔂 d: 🔫 = 2..n {
+    if n / d * d 🆚 n {
+      gg d;
+    }
+  }
+  gg 0;
+}
+hero Counter {
+  flex c: 🔫;
+  ability add_up(n: 🔫) -> 🔫 {
+    🔂 i: 🔫 = 0..n {
+      c = c + i;
+    }
+    gg c;
+  }
+}
+print(smallest_divisor(15));
+print(smallest_divisor(13));
+flex k: Counter = spawn Counter(1);
+print(k.add_up(4));
+print(k);

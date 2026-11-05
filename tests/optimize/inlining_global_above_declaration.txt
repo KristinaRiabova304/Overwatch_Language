@@ -1,0 +1,13 @@
+// peek runs before g is declared, so it sees 0. After inlining, main reads
+// g above its declaration and must see the same 0. The local g in the if
+// block is a different variable, so the global gets a new name in the tree.
+flex first: 🔫 = 1;
+if first 🆚 1 {
+  flex g: 🔫 = 100;
+  print(peek() + g);
+}
+flex g: 🔫 = 5;
+ability peek() -> 🔫 {
+  gg g;
+}
+print(g);

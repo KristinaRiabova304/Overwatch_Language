@@ -1,0 +1,17 @@
+// A loop inside a loop; the body's variable starts over on every iteration.
+🔂 row: 🔫 = 0..3 {
+  flex total: 🔫 = 0;
+  🔂 col: 🔫 = 0..row + 1 {
+    total = total + col;
+  }
+  print(total);
+}
+flex a: 🔫 = 2;
+🔁 a > 0 {
+  flex b: 🔫 = 0;
+  🔁 b < a {
+    print(a * 10 + b);
+    b = b + 1;
+  }
+  a = a - 1;
+}

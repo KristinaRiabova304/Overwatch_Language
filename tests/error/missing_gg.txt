@@ -1,0 +1,5 @@
+ability sign(n: 🔫) -> 🔫 {
+  if n 🚫 0 {
+    gg 1;
+  }
+}

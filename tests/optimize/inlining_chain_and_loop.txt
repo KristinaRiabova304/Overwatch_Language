@@ -1,0 +1,13 @@
+// Inlining inner leaves outer with the loop's call in it, then outer is
+// inlined too, inside the loop body: the body's locals start over each time.
+ability inner(x: 🔫) -> 🔫 {
+  flex doubled: 🔫 = x * 2;
+  gg doubled;
+}
+ability outer(x: 🔫) -> 🔫 {
+  print("outer");
+  gg inner(x) + 1;
+}
+🔂 i: 🔫 = 0..2 {
+  print(outer(i));
+}

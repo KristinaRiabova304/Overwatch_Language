@@ -1,0 +1,38 @@
+// Each function is called once, and none of them can be inlined.
+flex g: 🔫 = 1;
+ability fact(n: 🔫) -> 🔫 {
+  if n 🆚 0 {
+    gg 1;
+  }
+  gg n * fact(n - 1);
+}
+ability sign(n: 🔫) -> 🔫 {
+  if n < 0 {
+    gg -1;
+  }
+  gg 1;
+}
+ability below_three(n: 🔫) -> ult {
+  print("checked");
+  gg n < 3;
+}
+ability bump() -> 🔫 {
+  g = g + 1;
+  gg 10;
+}
+hero Box {
+  🔒 v: 🔫;
+  ability get() -> 🔫 {
+    gg v;
+  }
+}
+print(fact(3));
+print(sign(-4));
+// A while condition runs on every iteration.
+flex n: 🔫 = 2;
+🔁 below_three(n) {
+  n = n + 1;
+}
+// g is read before bump changes it.
+print(g + bump());
+print(spawn Box(2).get());

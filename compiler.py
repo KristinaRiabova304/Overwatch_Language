@@ -1,33 +1,72 @@
 #!/usr/bin/env python3
-"""Entry point for the OWL compiler (stage 1: lexer + parser -> AST dump)."""
+"""Entry point for the OWL compiler.
+
+  python3 compiler.py input.txt output.ll   compile to LLVM IR
+  python3 compiler.py --ast input.txt       print the AST
+  --optimize, anywhere on the command line, runs the optimizer before code
+  generation; together with --ast it prints the tree after the optimizer.
+"""
 
 import argparse
 import sys
 
 from lexer import Lexer, LexError
 from parser import Parser, ParseError
+from semantic import analyze, SemanticError
+from optimizer import optimize
+from codegen import generate
 from ast_nodes import dump_ast
+
+
+def fail(message):
+    print(f"compilation error: {message}", file=sys.stderr)
+    sys.exit(1)
 
 
 def main():
     argp = argparse.ArgumentParser(description="OWL (Overwatch Workshop Language) compiler")
     argp.add_argument("input", help="path to an OWL source file")
+    argp.add_argument("output", nargs="?", help="path of the LLVM IR file to write")
     argp.add_argument("--ast", action="store_true", help="print the parsed AST")
-    args = argp.parse_args()
+    argp.add_argument("--optimize", action="store_true", help="run the optimizer before code generation")
+    args = argp.parse_intermixed_args()
+    if not args.ast and args.output is None:
+        argp.error("an output file is required unless --ast is given")
 
-    with open(args.input, "rb") as f:
-        source = f.read()
+    try:
+        with open(args.input, "rb") as f:
+            source = f.read()
+    except OSError as e:
+        fail(f"cannot read {args.input}: {e.strerror}")
 
     try:
         tokens = Lexer(source).tokenize()
         program = Parser(tokens).parse_program()
-    except (LexError, ParseError) as e:
-        print(f"compilation error: line {e.line}:{e.col}: {e.message}", file=sys.stderr)
-        sys.exit(1)
+        if args.ast and not args.optimize:
+            for line in dump_ast(program):
+                print(line)
+            return
+        analyze(program)
+        if args.optimize:
+            optimize(program)
+        if args.ast:
+            for line in dump_ast(program):
+                print(line)
+            return
+        module = generate(program)
+    except (LexError, ParseError, SemanticError) as e:
+        fail(f"line {e.line}:{e.col}: {e.message}")
+    except RecursionError:
+        fail("line 1:1: program is nested too deeply")
+    except Exception as e:  # a bug in the compiler itself: still one line, never a traceback
+        fail(f"line 1:1: internal compiler error: {type(e).__name__}: {e}")
 
-    if args.ast:
-        for line in dump_ast(program):
-            print(line)
+    # The output file is written only after everything succeeded.
+    try:
+        with open(args.output, "w") as f:
+            f.write(str(module))
+    except OSError as e:
+        fail(f"cannot write {args.output}: {e.strerror}")
 
 
 if __name__ == "__main__":

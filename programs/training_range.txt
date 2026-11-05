@@ -1,0 +1,158 @@
+// OWL training range: set up a practice bot, then shoot and repair it from a
+// menu until it is destroyed or you leave. Every answer is one whole number.
+
+hero Bot {
+  flex hp: 🔫;
+  🔒 max_hp: 🔫;
+  🔒 armor: 🔫;
+  flex hits: 🔫;
+
+  ability alive() -> ult {
+    gg hp > 0;
+  }
+
+  // One shot: armor absorbs part of it, but a hit always does at least 1.
+  ability hit(damage: 🔫) -> 🔫 {
+    flex dealt: 🔫 = damage - armor;
+    if dealt < 1 {
+      dealt = 1;
+    }
+    if dealt > hp {
+      dealt = hp;
+    }
+    hp = hp - dealt;
+    hits = hits + 1;
+    gg dealt;
+  }
+
+  // Fires up to shots times and stops early when the bot goes down.
+  ability burst(shots: 🔫, damage: 🔫) -> 🔫 {
+    flex total: 🔫 = 0;
+    🔂 shot: 🔫 = 1..shots + 1 {
+      flex dealt: 🔫 = hit(damage);
+      print("Shot number, then damage dealt:");
+      print(shot);
+      print(dealt);
+      total = total + dealt;
+      if alive() 🆚 💤 {
+        print("Bot destroyed!");
+        🛑;
+      }
+    }
+    gg total;
+  }
+
+  ability repair(amount: 🔫) -> 🔫 {
+    hp = hp + amount;
+    if hp > max_hp {
+      hp = max_hp;
+    }
+    gg hp;
+  }
+}
+
+// Reads until the answer is 0 or between low and high. 0 always means "skip",
+// and it is also what read() gives when the input has ended.
+ability ask_number(low: 🔫, high: 🔫) -> 🔫 {
+  flex answer: 🔫 = read();
+  🔁 answer 🚫 0 {
+    if answer < low {
+      print("Too small, try again:");
+    } else {
+      if answer > high {
+        print("Too big, try again:");
+      } else {
+        gg answer;
+      }
+    }
+    answer = read();
+  }
+  gg 0;
+}
+
+// How many shots of this damage it takes to bring hp down to 0.
+ability shots_needed(hp: 🔫, damage: 🔫, armor: 🔫) -> 🔫 {
+  flex per_shot: 🔫 = damage - armor;
+  if per_shot < 1 {
+    per_shot = 1;
+  }
+  flex shots: 🔫 = 0;
+  flex left: 🔫 = hp;
+  🔁 left > 0 {
+    left = left - per_shot;
+    shots = shots + 1;
+  }
+  gg shots;
+}
+
+ability percent(part: 🔫, whole: 🔫) -> 🔫 {
+  flex scaled: 🔫 = part * 100;
+  gg scaled / whole;
+}
+
+print("=== OWL training range ===");
+print("Bot health, 1 to 1000 (0 for 100):");
+flex health: 🔫 = ask_number(1, 1000);
+if health 🆚 0 {
+  health = 100;
+}
+print("Bot armor, 1 to 50 (0 for 5):");
+flex armor: 🔫 = ask_number(1, 50);
+if armor 🆚 0 {
+  armor = 5;
+}
+flex bot: Bot = spawn Bot(health, health, armor, 0);
+print(bot);
+
+flex playing: ult = 🔥;
+🔁 playing {
+  print("Choose: 1 fire a burst, 2 repair, 3 forecast, 4 status, 0 leave");
+  flex choice: 🔫 = read();
+  if choice 🆚 0 {
+    playing = 💤;
+  }
+  if choice 🆚 1 {
+    print("How many shots, 1 to 20 (0 to cancel)?");
+    flex shots: 🔫 = ask_number(1, 20);
+    if shots > 0 {
+      print("Damage per shot, 1 to 500 (0 to cancel)?");
+      flex damage: 🔫 = ask_number(1, 500);
+      if damage > 0 {
+        flex total: 🔫 = bot.burst(shots, damage);
+        print("Total damage:");
+        print(total);
+        if bot.alive() 🆚 💤 {
+          playing = 💤;
+        }
+      }
+    }
+  }
+  if choice 🆚 2 {
+    print("Repair by how much, 1 to 1000 (0 to cancel)?");
+    flex amount: 🔫 = ask_number(1, 1000);
+    print("Health is now:");
+    print(bot.repair(amount));
+  }
+  if choice 🆚 3 {
+    print("Forecast for damage per shot, 1 to 500 (0 to cancel)?");
+    flex planned: 🔫 = ask_number(1, 500);
+    if planned > 0 {
+      print("Shots needed:");
+      print(shots_needed(bot.hp, planned, bot.armor));
+    }
+  }
+  if choice 🆚 4 {
+    print(bot);
+    print("Health percent:");
+    print(percent(bot.hp, bot.max_hp));
+  }
+  if choice < 0 {
+    print("Unknown choice.");
+  }
+  if choice > 4 {
+    print("Unknown choice.");
+  }
+}
+
+print("Session over. Shots that hit:");
+print(bot.hits);

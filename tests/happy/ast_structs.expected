@@ -1,0 +1,33 @@
+Program
+  StructDecl name=Point
+    field: Field name=x mutable=True type=i32
+    field: Field name=y mutable=False type=i32
+    method: FunctionDecl name=move result=i32
+      param: Param name=dx type=i32
+      body: Block
+        Assign name=x
+          BinaryExpr op=ADD checked=False
+            left: Ident name=x
+            right: Ident name=dx
+        Return
+          Ident name=x
+  VarDecl name=c mutable=True type=Circle
+    New type=Circle args=2
+      arg: New type=Point args=2
+        arg: IntLiteral value=1
+        arg: IntLiteral value=2
+      arg: IntLiteral value=5
+  FieldAssign
+    target: FieldAccess field=x
+      object: FieldAccess field=center
+        object: Ident name=c
+    value: IntLiteral value=10
+  ExprStmt
+    MethodCall name=move args=1
+      object: FieldAccess field=center
+        object: Ident name=c
+      arg: IntLiteral value=3
+  VarDecl name=d mutable=True type=i32
+    FieldAccess field=x
+      object: FieldAccess field=center
+        object: Ident name=c

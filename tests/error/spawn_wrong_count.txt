@@ -1,0 +1,2 @@
+hero Point { flex x: 🔫; flex y: 🔫; }
+flex p: Point = spawn Point(1);

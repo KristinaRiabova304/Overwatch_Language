@@ -1,0 +1,9 @@
+hero Point {
+  flex x: 🔫;
+  ability move(dx: 🔫) -> 🔫 {
+    x = x + dx;
+    gg x;
+  }
+}
+🔒 p: Point = spawn Point(1);
+p.move(2);

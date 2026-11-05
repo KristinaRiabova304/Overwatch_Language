@@ -1,0 +1,12 @@
+hero Point {
+  flex x: 🔫;
+  🔒 y: 🔫;
+  ability move(dx: 🔫) -> 🔫 {
+    x = x + dx;
+    gg x;
+  }
+}
+flex c: Circle = spawn Circle(spawn Point(1, 2), 5);
+c.center.x = 10;
+c.center.move(3);
+flex d: 🔫 = c.center.x;

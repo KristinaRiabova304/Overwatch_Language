@@ -1,0 +1,18 @@
+Program
+  VarDecl name=first mutable=True type=i32
+    IntLiteral value=1
+  If
+    condition: BinaryExpr op=EQ checked=False
+      left: Ident name=first
+      right: IntLiteral value=1
+    then: Block
+      VarDecl name=g mutable=True type=i32
+        IntLiteral value=100
+      Print
+        BinaryExpr op=ADD checked=False
+          left: Ident name=global_g_1
+          right: Ident name=g
+  VarDecl name=global_g_1 mutable=True type=i32
+    IntLiteral value=5
+  Print
+    Ident name=global_g_1

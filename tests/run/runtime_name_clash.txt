@@ -1,0 +1,6 @@
+// OWL functions get an "owl." prefix in the IR, so these names
+// do not clash with the C runtime
+ability main(x: 🔫) -> 🔫 { gg x + 1; }
+ability printf(x: 🔫) -> 🔫 { gg x * 2; }
+ability scanf(x: 🔫) -> 🔫 { gg x - 3; }
+print(scanf(printf(main(4))));

@@ -1,0 +1,25 @@
+Program
+  VarDecl name=hp mutable=True type=i32
+    IntLiteral value=10
+  VarDecl name=bonus mutable=True type=i32
+    IntLiteral value=1
+  VarDecl name=heal_hp_1 mutable=False type=i32
+    Ident name=hp
+  VarDecl name=heal_amount_2 mutable=False type=i32
+    IntLiteral value=5
+  VarDecl name=heal_bonus_3 mutable=True type=i32
+    BinaryExpr op=MUL checked=False
+      left: Ident name=heal_amount_2
+      right: IntLiteral value=2
+  Print
+    Ident name=heal_bonus_3
+  VarDecl name=result mutable=True type=i32
+    BinaryExpr op=ADD checked=False
+      left: Ident name=heal_hp_1
+      right: Ident name=heal_bonus_3
+  Print
+    Ident name=result
+  Print
+    Ident name=hp
+  Print
+    Ident name=bonus

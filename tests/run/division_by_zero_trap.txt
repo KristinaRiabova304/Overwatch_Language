@@ -1,0 +1,4 @@
+ability div(a: 🔫, b: 🔫) -> 🔫 { gg a / b; }
+print(div(10, 3));
+print(div(10, 0));
+print("never printed");

@@ -1,0 +1,2 @@
+ability get() -> 🔫 { gg score; }
+flex score: 🔫 = 1;

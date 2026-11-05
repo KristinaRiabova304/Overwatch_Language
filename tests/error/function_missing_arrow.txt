@@ -1,0 +1,3 @@
+ability f(a: 🔫) 🔫 {
+  gg a;
+}

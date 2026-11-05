@@ -1,0 +1,12 @@
+// unchecked arithmetic wraps at the width of its type
+flex a: 🔫 = 2147483647;
+print(a + 1);
+flex b: 🚀 = 2147483647;
+print(b + 1);
+print(7 / 2);
+print(-7 / 2);
+print(10 - 3 * 2);
+print((10 - 3) * 2);
+flex m: 🔫 = -2147483648;
+print(m / -1);
+print(m - 1);

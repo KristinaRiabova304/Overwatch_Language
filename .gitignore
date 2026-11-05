@@ -1,2 +1,9 @@
+.DS_Store
+*.pdf
 __pycache__/
 *.pyc
+*.ll
+*.o
+a.out
+.venv/
+/training_range

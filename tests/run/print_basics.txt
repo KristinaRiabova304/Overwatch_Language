@@ -1,0 +1,8 @@
+// print: string literals, integers of both widths, bools
+print("GG WP");
+print(42);
+print(🔥);
+print(💤);
+🔒 big: 🚀 = 9000000000;
+print(big);
+print(-7);

@@ -1,0 +1,7 @@
+hero Point {
+  flex x: 🔫;
+  ability move(dx: 🔫) -> 🔫 { x = x + dx; gg x; }
+}
+ability push(p: Point) -> 🔫 {
+  gg p.move(1);
+}

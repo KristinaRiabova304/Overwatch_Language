@@ -1,0 +1,38 @@
+Program
+  FunctionDecl name=noisy result=i32
+    param: Param name=n type=i32
+    body: Block
+      If
+        condition: BinaryExpr op=EQ checked=False
+          left: Ident name=n
+          right: IntLiteral value=0
+        then: Block
+          Return
+            IntLiteral value=0
+      Print
+        StringLiteral value='noisy'
+      Return
+        Ident name=n
+  VarDecl name=x mutable=True type=i32
+    IntLiteral value=1
+  ExprStmt
+    Call name=noisy args=1
+      arg: IntLiteral value=1
+  If
+    condition: BinaryExpr op=EQ checked=False
+      left: Ident name=x
+      right: IntLiteral value=1
+    then: Block
+      Print
+        StringLiteral value='inner'
+  ExprStmt
+    Read
+  ExprStmt
+    Call name=noisy args=1
+      arg: IntLiteral value=2
+  ExprStmt
+    BinaryExpr op=DIV checked=False
+      left: IntLiteral value=10
+      right: Ident name=x
+  Print
+    Ident name=x
