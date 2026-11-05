@@ -2,17 +2,20 @@
 
 A small statically-typed language themed after *Overwatch*: declarations,
 types and operators are spelled with game-flavored keywords and emoji
-instead of the usual `let`/`i32`/`==`. Stage 2 makes the language run: the
-compiler checks a program in a separate semantic pass and generates LLVM IR
-through the `llvmlite.ir` builder, which clang turns into an executable.
+instead of the usual `let`/`i32`/`==`. The compiler checks a program in a
+separate semantic pass and generates LLVM IR through the `llvmlite.ir`
+builder, which clang turns into an executable. Stage 3 adds loops, an
+optimizer behind `--optimize`, and a real program,
+[`programs/training_range.txt`](programs/training_range.txt).
 
 The full grammar is in [`grammar.ebnf`](grammar.ebnf).
 
 ## Building and running
 
-Requirements: Python 3.9+, [llvmlite](https://pypi.org/project/llvmlite/)
-and clang (any version that reads the IR llvmlite prints; tested with
-llvmlite 0.49 and clang 23).
+Requirements: Python 3.9+, [llvmlite](https://pypi.org/project/llvmlite/),
+and clang and llc (any version that reads the IR llvmlite prints; tested with
+llvmlite 0.49 and LLVM 23). llc is only needed for the native build of
+[the real program](#the-real-program).
 
 ```
 python3 -m pip install -r requirements.txt
@@ -45,6 +48,15 @@ Print the AST instead (parsing only, no semantic checks):
 python3 compiler.py --ast program.txt
 ```
 
+`--optimize`, anywhere on the command line, runs the optimizer before code
+generation. Together with `--ast` it checks the program and prints the tree
+after the optimizer:
+
+```
+python3 compiler.py --optimize program.txt program.ll
+python3 compiler.py --optimize --ast program.txt
+```
+
 On any error — lexical, syntax or semantic — nothing is written to stdout,
 no output file is created, the exit code is 1, and one line goes to stderr:
 
@@ -66,6 +78,13 @@ python3 tests/run_tests.py
 | `tests/happy/` | `--ast` output equals `NAME.expected` |
 | `tests/run/`   | end to end: compiled to `.ll`, built with clang and run; stdout equals `NAME.expected` exactly. `NAME.in`, when present, is the program's stdin; `NAME.exitcode`, when present, is the expected exit code (otherwise 0) |
 | `tests/error/` | compilation fails with exactly the line in `NAME.expected`, no stdout and no output file |
+| `tests/optimize/` | `--optimize --ast` output equals `NAME.ast`; the program prints `NAME.expected` with and without the flag |
+| `programs/`    | each recorded session prints its `.expected` exactly, with and without the flag |
+
+Every `run` and `error` test also runs with `--optimize`. A `happy` test's tree
+changes under the flag, so there the script checks that the program behaves
+the same with and without it; the few `happy` programs that only parse must be
+rejected the same way by both.
 
 The script prints PASS/FAIL per test and the list of failures, and exits
 non-zero if anything failed. It uses `$CLANG` if set, else `clang` on PATH.
@@ -98,7 +117,8 @@ hp = 80;
 ### Operators
 
 `+ - * /` wrap around on overflow; the checked forms `+! -! *! /!` stop the
-program instead. `🆚` is `==`, `🚫` is `!=`; comparisons do not chain.
+program instead. `🆚` is `==`, `🚫` is `!=`, and `<` and `>` compare integers;
+comparisons do not chain.
 
 ```
 flex dmg: 🔫 = 1 +! 2 *! 3;
@@ -114,6 +134,12 @@ if hp 🚫 0 {
   hp = 0;
 }
 ```
+
+### Loops
+
+`🔁` repeats its body while the condition is `🔥`. `🔂` runs its body for every
+integer from the start up to, but not including, the end. `🛑` leaves the
+innermost loop. The rules are under [Loops](#loops-1) below.
 
 ### Functions
 
@@ -228,7 +254,7 @@ programs follow the rule, `error/` programs break it).
 
 6. **A name is declared before it is used, and once per scope.** The top
    level, every function body (together with its parameters) and every
-   `{ }` block of an `if` is a scope. An inner block may declare a name
+   `{ }` block of an `if` or a loop is a scope. An inner block may declare a name
    that an outer scope already has; it hides the outer one until the
    block ends.
    *Follows:* `run/name_lookup`. *Breaks:* `error/undeclared_variable`,
@@ -328,6 +354,195 @@ programs follow the rule, `error/` programs break it).
     *Follows:* `run/print_formats`. *Breaks:*
     `error/string_outside_print`.
 
+### Loops
+
+The feature of Stage 3. Its tests are `run/loops_*`, `happy/loops_ast` and
+`error/loops_*`. The keywords are emoji because emoji were never identifiers:
+every program that was valid in Stage 2 is still valid.
+
+23. **The condition of `🔁` is `ult`, checked before every iteration.** A
+    false condition runs the body zero times.
+    *Follows:* `run/loops_while`. *Breaks:* `error/loops_condition_not_bool`.
+24. **`🔂 i: T = start..end` runs for `start <= i < end`.** `T` is `🔫` or `🚀`,
+    and both bounds have that type. Both are evaluated once, start first,
+    before the first iteration. A range whose start is not below its end runs
+    zero times.
+    *Follows:* `run/loops_for`. *Breaks:*
+    `error/loops_for_variable_not_integer`, `error/loops_range_wrong_type`,
+    `error/loops_range_without_dots`.
+25. **The loop variable is constant, and exists only in the loop.** The body
+    shares its scope, so the body cannot redeclare it; the bounds cannot use it.
+    *Follows:* `run/loops_for`. *Breaks:* `error/loops_assign_to_for_variable`,
+    `error/loops_variable_gone_after_loop`,
+    `error/loops_redeclare_variable_in_body`.
+26. **A loop body is a scope, and starts over on every iteration.** A variable
+    declared in it is initialised again each time.
+    *Follows:* `run/loops_nested`.
+27. **`🛑` is only allowed inside a loop and leaves the innermost one.** A
+    statement after it in the same block is an error.
+    *Follows:* `run/loops_break`. *Breaks:* `error/loops_break_outside`,
+    `error/loops_unreachable_after_break`.
+28. **A loop never counts as ending every path through a function,** because
+    its body may not run. `gg` inside a loop leaves the function as usual, but
+    the function still needs a `gg` after the loop, even after `🔁 🔥`.
+    *Follows:* `run/loops_in_functions`, `run/loops_exit_code`. *Breaks:*
+    `error/loops_do_not_end_function`.
+29. **`<` and `>` take two integers of the same type and give `ult`.**
+    *Follows:* `run/loops_while`. *Breaks:* `error/loops_order_bools`.
+
+Two example programs:
+
+```
+// Reads numbers until a 0, then prints their sum.
+flex sum: 🔫 = 0;
+flex n: 🔫 = read();
+🔁 n 🚫 0 {
+  sum = sum + n;
+  n = read();
+}
+print(sum);
+```
+
+```
+// A triangle of totals: a loop inside a loop whose body declares a variable.
+🔂 row: 🔫 = 0..3 {
+  flex total: 🔫 = 0;
+  🔂 col: 🔫 = 0..row + 1 {
+    if col 🆚 2 {
+      🛑;
+    }
+    total = total + col;
+  }
+  print(total);
+}
+```
+
+## Loops in the IR
+
+The output of `🔂 i: 🔫 = 0..n { sum = sum + i; }` inside a function:
+
+```llvm
+for.cond:
+  %"i.1" = load i32, i32* %"i"
+  %".9" = load i32, i32* %"i.end"
+  %".10" = icmp slt i32 %"i.1", %".9"
+  br i1 %".10", label %"for.body", label %"for.end"
+for.body:
+  %"sum.1" = load i32, i32* %"sum"
+  %"i.2" = load i32, i32* %"i"
+  %".12" = add i32 %"sum.1", %"i.2"
+  store i32 %".12", i32* %"sum"
+  br label %"for.step"
+for.step:
+  %"i.3" = load i32, i32* %"i"
+  %".15" = add i32 %"i.3", 1
+  store i32 %".15", i32* %"i"
+  br label %"for.cond"
+for.end:
+```
+
+`for.cond` compares the variable with the end, which was computed once and kept
+in its own slot `%"i.end"`, and goes either into the body or out of the loop to
+`for.end`. `for.body` is the OWL body; a `🛑` in it would be a branch straight to
+`for.end`. `for.step` adds one, and its last line is the back edge: a branch to a
+block that came earlier, which is what makes this a loop.
+
+## The optimizer
+
+`optimizer.py` works on the checked tree, after the semantic pass and before
+code generation. Every name in the tree already points at its variable or
+function, so two variables with one name are never confused. Its three
+transformations repeat until none of them changes anything. Its tests are in
+`tests/optimize/`.
+
+**Unused variables.** A declaration nobody reads is removed with its
+assignments, including assignments to its fields, and the pass repeats because
+that can leave another variable unread. A value with an effect stays as a bare
+expression: a call, `read()`, and division or a checked operator, which can stop
+the program. `x = x + 1;` counts as a read of `x`. Parameters and loop variables
+are never removed.
+*Tests:* `unused_variables_chain`, `unused_variables_effects`.
+
+**Unused functions.** Whatever the top-level code can reach stays, so removing
+a body can leave another function unused, and a recursive function or a pair
+that only call each other is removed when nothing else calls them. Member
+functions are removed the same way.
+*Tests:* `unused_functions_chain`, `unused_functions_recursive`.
+
+**Inlining.** A top-level function called exactly once replaces its call. The
+body moves in front of the statement holding the call: each parameter becomes a
+constant local initialised with its argument, the value of the final `gg` stands
+where the call stood, and every local is renamed `<function>_<name>_<number>`. A
+global the body uses is renamed too when a local, parameter or field anywhere in
+the program has its name.
+*Tests:* `inlining_simple`, `inlining_chain_and_loop`,
+`inlining_left_alone`, `inlining_global_above_declaration`.
+
+| Inlined | Left alone, and why |
+|---------|---------------------|
+| A body of statements with one `gg`, as its last statement. The body may hold `if`s and loops | A `gg` anywhere else, such as inside an `if` or a loop: leaving early would need a jump the tree cannot express |
+| A call in a declaration, assignment, `gg`, `print`, call statement, `if` condition or the bounds of `🔂` | A call in a `🔁` condition: it runs on every iteration, but the moved body would run once |
+| A call with only literals, locals and arithmetic that cannot stop the program evaluated before it | A call after anything else in the same statement, such as `g + f()` with a global `g`, `h() + f()` or `(a / b) + f()`: moving the call ahead would change what the program does |
+| | A recursive function, directly or through other functions |
+| | A member function |
+
+Inlining `heal` in this program, without and with `--optimize`:
+
+```
+ability heal(hp: 🔫, amount: 🔫) -> 🔫 {
+  gg hp + amount;
+}
+flex current: 🔫 = read();
+print(heal(current, 5));
+```
+
+Before, `main` calls the function:
+
+```llvm
+  %"current" = load i32, i32* @"owl.g.current"
+  %".8" = call i32 @"owl.heal"(i32 %"current", i32 5)
+  %".9" = getelementptr inbounds [3 x i8], [3 x i8]* @"str.2", i32 0, i32 0
+  %".10" = call i32 (i8*, ...) @"printf"(i8* %".9", i32 %".8")
+```
+
+After, `@"owl.heal"` is gone from the module and its work is in `main`, on locals
+with new names:
+
+```llvm
+  %"current" = load i32, i32* @"owl.g.current"
+  store i32 %"current", i32* %"heal_hp_1"
+  store i32 5, i32* %"heal_amount_2"
+  %"heal_hp_1.1" = load i32, i32* %"heal_hp_1"
+  %"heal_amount_2.1" = load i32, i32* %"heal_amount_2"
+  %".10" = add i32 %"heal_hp_1.1", %"heal_amount_2.1"
+  %".11" = getelementptr inbounds [3 x i8], [3 x i8]* @"str.2", i32 0, i32 0
+  %".12" = call i32 (i8*, ...) @"printf"(i8* %".11", i32 %".10")
+```
+
+## The real program
+
+`programs/training_range.txt` is a shooting range you play from the keyboard.
+You set up a practice bot with health and armor, then pick from a menu: fire a
+burst, repair the bot, forecast how many shots it would take, or see its status.
+It ends when the bot is destroyed or you leave. Every answer is one whole number.
+It uses the structure `Bot` with member functions, the functions `ask_number`,
+`shots_needed` and `percent`, and `read` and `print`. Loops carry the program: `🔁`
+runs the menu, re-asks after a bad answer and counts shots in the forecast, while
+`🔂` fires the burst, and `🛑` ends a burst when the bot goes down.
+
+Build the native binary, then run the two recorded sessions:
+
+```
+python3 compiler.py programs/training_range.txt training_range.ll
+llc -filetype=obj training_range.ll -o training_range.o
+clang training_range.o -o training_range
+./training_range < programs/training_range.in
+./training_range < programs/training_range.session2.in
+```
+
+Run `./training_range` alone to play. The first session destroys the bot; the
+second tries bad answers, repairs, forecasts and leaves from the menu.
+
 ## Code generation
 
 `codegen.py` builds the module with `llvmlite.ir`; the `.ll` file is
@@ -342,7 +557,9 @@ programs follow the rule, `error/` programs break it).
   is an `alloca` of it; a field is reached with a `gep` by the field's
   index from the symbol table.
 - Top-level variables are globals `owl.g.<name>`; locals and parameters
-  are `alloca`s in the function's entry block.
+  are `alloca`s in the function's entry block, so a variable declared in a
+  loop body takes one slot, not one per iteration. Locals moved into top-level
+  code by the optimizer are `alloca`s in `main`.
 - Checked `+! -! *!` use the `llvm.s{add,sub,mul}.with.overflow`
   intrinsics; a failed check calls a small runtime function that flushes
   stdout, writes the message to stderr and calls `exit(1)`.
@@ -359,9 +576,11 @@ lexer.py          hand-written byte-level lexer (state machine)
 parser.py         recursive-descent parser, one function per grammar rule
 ast_nodes.py      AST node classes and the --ast printer
 semantic.py       semantic pass: symbol table, checks, AST annotations
+optimizer.py      the optimizer behind --optimize
 codegen.py        LLVM IR generation with llvmlite.ir
 compiler.py       command-line entry point
 grammar.ebnf      the complete grammar
 requirements.txt  Python dependencies
 tests/            test programs and run_tests.py
+programs/         the real program and its recorded sessions
 ```

@@ -103,7 +103,9 @@ identifier      ::= letter { letter | digit | "_" } ;
 letter          ::= "a".."z" | "A".."Z" | "_" ;
 digit           ::= "0".."9" ;
 
-(* Lexical rules for the stage 2 symbols. "ability", "gg", "hero", "spawn",
+(* Lexical rules for the symbols added since stage 1. ".." is a single token
+   and is checked before ".". The loop keywords are emoji, so they take no
+   identifier away from an older program. "ability", "gg", "hero", "spawn",
    "read" and "print" are keywords and cannot be used as identifiers. "->" is a single
    token: a "-" immediately followed by ">" is always the arrow. *)
 arrow           ::= "->" ;

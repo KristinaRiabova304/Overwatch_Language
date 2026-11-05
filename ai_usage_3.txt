@@ -1,0 +1,125 @@
+AI USAGE DISCLOSURE - PROJECT STAGE 3
+=====================================
+
+1. TOOLS
+--------
+Claude Code (Anthropic's command-line coding agent), model Claude Opus 5.5.
+It read the assignment PDF and my code, ran shell commands (git, gh, python3,
+clang, llc) in my repository, wrote and edited the files, and committed and
+pushed them. No other AI tool was used.
+
+Claude Code sessions have no public transcript link, so my prompts are copied
+below. Prompts marked [translated] were sent in Russian or a mix of Russian and
+Ukrainian, and are given here in English; the others are exactly as I typed them.
+Later short prompts about removing commits from the history and about this
+translation are not listed.
+
+
+2. PROMPTS
+----------
+ 1. "w10-project-stage3 (2).pdf okey look u need to read this file, teachet
+    did not check my previous stage and i have a deadline tommorow so u lets
+    create stage 3 branch and do tasks from pdf file step by step and check it"
+ 2. "Loops (Recommended)"
+    (my answer when Claude asked which feature to build; the choices were
+    Loops, Arrays, Overloading and Inheritance, and Claude recommended Loops)
+ 3. "explain the loop IR and optimizer.py to me simply"
+ 4. "check maybe there are some moments that u need to fix"
+    (I stopped the check Claude started after this prompt)
+ 5. [translated] "what else needs to be done"
+ 6. "do it all"
+ 7. [translated] "Write section 4: 3-5 sentences in your own words and send them
+    to me, Ukrainian is fine. Plain text works too, for example: what the back
+    edge in a loop does, why a read() call cannot be removed, and how function
+    inlining works. write it yourself, short and simple, don't push yet"
+    (the first part repeats Claude's message back to it; Claude declined to
+    write this section for me and asked me three questions instead)
+ 8. [translated] "delete these two commits for now but leave them in the
+    directory so that it stays as it was"
+    (sent with the titles of the two commits, pasted from GitHub; Claude removed
+    them from the branch and kept the files, and they were committed again later)
+ 9. My three answers, which are section 4 below, followed by [translated] "is this ok?"
+10. [translated] "ok, let it be, push everything"
+
+
+3. WHAT WAS TAKEN AS IT WAS, WHAT WAS CHANGED, AND WHY
+------------------------------------------------------
+Claude wrote all of the Stage 3 code, tests and documentation, and made the
+design decisions below except the choice of feature. I did not edit any file
+by hand.
+
+My decision:
+- The feature: Loops, from the four options Claude offered.
+
+Decisions Claude made without asking me, which I kept:
+- Emoji keywords for loops (🔁 🔂 🛑) instead of words such as "while", so that a
+  Stage 2 program with a variable named "while" stays valid.
+- A range start..end does not include the end, its bounds are evaluated once,
+  and the loop variable is constant.
+- Adding < and > to the language, because the program needs them. They are not
+  the feature itself. (Claude had mentioned this when offering Loops.)
+- Which shapes are inlined and which are left alone (table in the README).
+- What the real program is: the training range.
+
+Per part of the work:
+
+Loops (lexer.py, parser.py, ast_nodes.py, semantic.py, codegen.py, grammar.ebnf)
+  Taken as written. The rule "equality" was renamed "comparison" in the grammar
+  and the parser, because it now also holds < and >.
+
+Optimizer (optimizer.py, compiler.py)
+  Taken as written, with these changes by Claude after checking its output:
+  - The printed tree of one test read "g + g", where one g was a global and the
+    other a local of the caller. The program ran correctly, but the assignment
+    says names must not collide, so a global is now renamed in that case.
+  - Inlining can make main read a global above its declaration, which would
+    have crashed code generation, so all globals are now created first.
+  - argparse rejected --optimize between the two file names, so compiler.py now
+    uses parse_intermixed_args. This was found by reasoning about argparse
+    before any test failed.
+
+Tests (tests/run_tests.py, tests/run, tests/error, tests/happy, tests/optimize)
+  Taken as written. Claude wrote by hand the expected output of the loop tests,
+  the optimizer tests and the sessions. The expected loop errors and the tree in
+  happy/loops_ast were also written by hand. The trees in tests/optimize/*.ast,
+  except unused_variables_chain.ast, were produced by the compiler and read
+  through by Claude before being saved, so they record checked output rather
+  than an independent prediction.
+  Changes:
+  - The runner first failed two parse-only happy programs under --optimize.
+    These programs never compile, so the check became: both modes must reject
+    them with the same error.
+  Claude also compared 250 randomly changed programs with and without
+  --optimize. The ones that compiled behaved identically and the others gave the
+  same error. That script was a one-off and is not in the repository.
+
+Real program (programs/)
+  Taken as written. Claude's first input file for session 2 did not match its
+  expected output; it noticed this when checking the session by hand and fixed
+  the input.
+
+README.md, grammar.ebnf comments, .gitignore
+  Taken as written. The IR excerpts are copied from the compiler's real output.
+  After prompts 4 and 6 Claude reviewed its own work against the assignment and
+  changed: llc added to the requirements, the text after the loop IR excerpt cut
+  to the three sentences asked for, loops added to the scope rule, and a grammar
+  comment updated. The same review ran six harder programs through the optimizer
+  and found no change in behaviour, so optimizer.py did not change.
+
+Explanations
+  Claude explained the loop IR and optimizer.py to me in prompt 3. Section 4
+  below is what I understood, in my own words, written by me as answers to
+  Claude's three questions. Claude told me that answer 3 is not exact: parameters
+  become local variables rather than being put into the formula, and the value of
+  gg stands where the call stood rather than being added to HP. I chose to keep
+  my text unchanged.
+
+
+4. WHAT I UNDERSTOOD 
+--------------------------------------
+1. br label %"for.cond" в кінці for.step
+Повертає виконання на початок циклу, до перевірки умови. Без цього рядка код просто піде далі і цикл зламається.
+2. read() у flex y: 🔫 = read()
+Залишається, бо read() виконує реальну дію, чекає ввід. Змінна y не потрібна, але видалити сам виклик компілятор не може, це змінить програму.
+3. Виклик heal(current, 5)
+Зникає повністю, а код heal вставляється напряму. Параметри current і 5 підставляються в формулу, а gg обчислюється і додається до HP одразу на місці.
